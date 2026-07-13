@@ -1,5 +1,5 @@
 // ============================================
-// app.js - Main Application Controller
+// app.js - Main Application Controller (FIXED)
 // ============================================
 
 const App = {
@@ -38,7 +38,7 @@ const App = {
             this.showAppScreen();
         }
         
-        // Bind core events
+        // Bind core events (hanya sekali)
         this.bindNavigation();
         this.bindThemeToggle();
         this.bindPinKeypad();
@@ -59,6 +59,9 @@ const App = {
     },
     
     switchTab(tab) {
+        // ⬅️ GUARD: Jangan render ulang tab yang sama
+        if (this.currentTab === tab) return;
+        
         this.currentTab = tab;
         
         // Update nav active state
@@ -75,10 +78,12 @@ const App = {
         };
         document.getElementById('app-title').textContent = titles[tab] || 'Hariku';
         
-        // Render content
+        // Hapus konten lama (biar event listener ikut hilang)
         const container = document.getElementById('app-content');
         if (!container) return;
+        container.innerHTML = '';
         
+        // Render konten baru
         switch(tab) {
             case 'dashboard':
                 Dashboard.render(container);
@@ -102,23 +107,29 @@ const App = {
     },
     
     refreshAll() {
-        this.switchTab(this.currentTab);
+        // Reset currentTab biar switchTab bisa jalan
+        const current = this.currentTab;
+        this.currentTab = '';
+        this.switchTab(current);
     },
     
     // ========== THEME ==========
     bindThemeToggle() {
-        document.getElementById('btn-theme')?.addEventListener('click', () => {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            if (isDark) {
-                document.documentElement.setAttribute('data-theme', 'light');
-                document.querySelector('meta[name="theme-color"]').content = '#f5f5f9';
-                Storage.saveSetting('darkMode', false);
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                document.querySelector('meta[name="theme-color"]').content = '#09090d';
-                Storage.saveSetting('darkMode', true);
-            }
-        });
+        const themeBtn = document.getElementById('btn-theme');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.querySelector('meta[name="theme-color"]').content = '#f5f5f9';
+                    Storage.saveSetting('darkMode', false);
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.querySelector('meta[name="theme-color"]').content = '#09090d';
+                    Storage.saveSetting('darkMode', true);
+                }
+            });
+        }
     },
     
     // ========== PIN SCREEN ==========
@@ -188,20 +199,17 @@ const App = {
         const hash = this.hashPin(this.pinInput);
         
         if (hash === Storage.getPINHash()) {
-            // Success
             this.pinAttempts = 0;
             this.pinInput = '';
             this.updatePinDots('pin-dots', '');
             this.showAppScreen();
             this.toast('✅ Selamat datang!');
         } else {
-            // Failed
             this.pinAttempts++;
             this.pinInput = '';
             this.updatePinDots('pin-dots', '');
             document.getElementById('pin-error').textContent = 'PIN salah!';
             
-            // Shake animation
             const dots = document.getElementById('pin-dots');
             dots.style.animation = 'none';
             dots.offsetHeight;
@@ -255,7 +263,11 @@ const App = {
         this.modalPinInput = '';
         this.updatePinDots('pin-dots-modal', '');
         
-        document.getElementById('modal-pin-title').textContent = 'Atur PIN';
+        document.getElementById('modal-pin-title').innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:6px;">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>Atur PIN`;
         document.getElementById('modal-pin-desc').textContent = 'Buat PIN 6 digit untuk keamanan';
         document.getElementById('pin-modal-error').textContent = '';
         document.getElementById('modal-pin-setup').classList.add('active');
@@ -289,7 +301,6 @@ const App = {
     
     processModalPin() {
         if (this.modalPinStep === 1) {
-            // First entry
             this.modalPinFirst = this.modalPinInput;
             this.modalPinInput = '';
             this.modalPinStep = 2;
@@ -298,20 +309,16 @@ const App = {
             document.getElementById('modal-pin-title').textContent = 'Konfirmasi PIN';
             document.getElementById('modal-pin-desc').textContent = 'Masukkan lagi PIN yang sama';
         } else {
-            // Confirm entry
             if (this.modalPinInput === this.modalPinFirst) {
-                // Match - save PIN
                 const hash = this.hashPin(this.modalPinInput);
                 Storage.savePINHash(hash);
                 this.closePinSetupModal();
                 this.toast('✅ PIN berhasil disimpan!');
                 
-                // Refresh profile page if open
                 if (this.currentTab === 'profile') {
                     Profile.refresh();
                 }
             } else {
-                // Mismatch
                 document.getElementById('pin-modal-error').textContent = 'PIN tidak cocok! Coba lagi.';
                 this.modalPinStep = 1;
                 this.modalPinFirst = '';
@@ -340,13 +347,12 @@ const App = {
     },
     
     hashPin(pin) {
-        // Simple hash function
         let hash = 0;
         const str = pin + 'hariku-salt-v2-2024';
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
+            hash = hash & hash;
         }
         return Math.abs(hash).toString(16);
     },
@@ -372,11 +378,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ========== HANDLE BACK BUTTON ==========
 window.addEventListener('popstate', (e) => {
-    // Prevent going back if on PIN screen
-    if (Storage.hasPin() && document.getElementById('pin-screen').style.display === 'flex') {
+    if (Storage.hasPin && Storage.hasPin() && document.getElementById('pin-screen').style.display === 'flex') {
         history.pushState(null, '', window.location.href);
     }
 });
 
-// Push initial state
 history.pushState(null, '', window.location.href);
