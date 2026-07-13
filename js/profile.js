@@ -1,5 +1,5 @@
 // ============================================
-// profile.js - Profile & Settings
+// profile.js - Profile & Settings (SVG Icons)
 // ============================================
 
 const Profile = {
@@ -12,8 +12,8 @@ const Profile = {
             <div style="padding:4px 0;">
                 
                 <!-- Profile Card -->
-                <div class="card glass" style="text-align:center;padding:24px 20px;margin-bottom:18px;">
-                    <div class="profile-avatar-section" style="margin:0 auto 14px;">
+                <div class="card glass" style="text-align:center;padding:28px 20px;margin-bottom:18px;">
+                    <div class="profile-avatar-section" style="margin:0 auto 16px;">
                         <div class="profile-avatar">
                             ${profile.photo 
                                 ? `<img src="${profile.photo}" alt="Foto Profil">` 
@@ -32,8 +32,11 @@ const Profile = {
                 
                 <!-- Menu Items -->
                 <div class="card" style="padding:0;overflow:hidden;margin-bottom:18px;">
+                    
                     <button class="settings-item" id="btn-settings">
-                        <span style="font-size:18px;">⚙️</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.8" stroke-linecap="round">
+                            <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
                         <div>
                             <div style="font-weight:600;">Pengaturan</div>
                             <div style="font-size:10px;color:var(--text-tertiary);">Tema, tampilan</div>
@@ -42,7 +45,10 @@ const Profile = {
                     </button>
                     
                     <button class="settings-item" id="btn-pin-setup">
-                        <span style="font-size:18px;">🔐</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.8" stroke-linecap="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0110 0v4"/>
+                        </svg>
                         <div>
                             <div style="font-weight:600;">${hasPin ? 'Ubah PIN' : 'Atur PIN'}</div>
                             <div style="font-size:10px;color:var(--text-tertiary);">
@@ -53,7 +59,11 @@ const Profile = {
                     </button>
                     
                     <button class="settings-item" id="btn-backup">
-                        <span style="font-size:18px;">💾</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.8" stroke-linecap="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
                         <div>
                             <div style="font-weight:600;">Backup Data</div>
                             <div style="font-size:10px;color:var(--text-tertiary);">Simpan ke file</div>
@@ -62,7 +72,11 @@ const Profile = {
                     </button>
                     
                     <button class="settings-item" id="btn-restore">
-                        <span style="font-size:18px;">📥</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.8" stroke-linecap="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
                         <div>
                             <div style="font-weight:600;">Restore Data</div>
                             <div style="font-size:10px;color:var(--text-tertiary);">Pulihkan dari file</div>
@@ -71,18 +85,27 @@ const Profile = {
                     </button>
                     
                     <button class="settings-item" id="btn-reset" style="color:var(--danger);">
-                        <span style="font-size:18px;">⚠️</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.8" stroke-linecap="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
                         <div>
                             <div style="font-weight:600;color:var(--danger);">Reset Semua</div>
                             <div style="font-size:10px;color:var(--text-tertiary);">Hapus seluruh data</div>
                         </div>
                         <span class="settings-arrow" style="color:var(--danger);">›</span>
                     </button>
+                    
                 </div>
                 
                 <!-- App Info -->
                 <div style="text-align:center;">
-                    <p style="font-size:24px;margin-bottom:4px;">📱</p>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:8px;">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                        <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                    </svg>
                     <p class="app-version">Hariku v2.0 • Premium</p>
                     <p style="font-size:9px;color:var(--text-tertiary);margin-top:4px;">Dibuat dengan ❤️</p>
                 </div>
@@ -95,6 +118,9 @@ const Profile = {
     },
     
     bindEvents() {
+        if (this._bound) return;
+        this._bound = true;
+        
         // Change photo
         document.getElementById('btn-change-photo')?.addEventListener('click', () => {
             document.getElementById('file-photo-input').click();
@@ -220,6 +246,7 @@ const Profile = {
     },
     
     refresh() {
+        this._bound = false; // Reset flag biar re-bind
         this.render(document.getElementById('app-content'));
     },
     
