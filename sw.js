@@ -1,118 +1,83 @@
 // ============================================
-// Service Worker - Hariku (my-daily-planner)
+// Service Worker - Auto Update Cache
 // ============================================
 
-const CACHE_NAME = 'hariku-v2';
-const REPO_PATH = '/my-daily-planner'; // ⬅️ Sesuaikan: kosongkan "" untuk Netlify
+const CACHE_NAME = 'hariku-v3-' + Date.now(); // ⬅️ Cache selalu baru
+const BASE_PATH = '/my-daily-planner';
 
-// File yang akan di-cache
+// File yang di-cache
 const ASSETS_TO_CACHE = [
-    `${REPO_PATH}/`,
-    `${REPO_PATH}/index.html`,
-    `${REPO_PATH}/css/style.css`,
-    `${REPO_PATH}/js/app.js`,
-    `${REPO_PATH}/js/storage.js`,
-    `${REPO_PATH}/js/dashboard.js`,
-    `${REPO_PATH}/js/tasks.js`,
-    `${REPO_PATH}/js/finance.js`,
-    `${REPO_PATH}/js/charts.js`,
-    `${REPO_PATH}/js/profile.js`,
-    `${REPO_PATH}/manifest.json`,
-    `${REPO_PATH}/icon-192.png`,
-    `${REPO_PATH}/icon-512.png`
+    BASE_PATH + '/',
+    BASE_PATH + '/index.html',
+    BASE_PATH + '/css/style.css',
+    BASE_PATH + '/js/app.js',
+    BASE_PATH + '/js/storage.js',
+    BASE_PATH + '/js/dashboard.js',
+    BASE_PATH + '/js/tasks.js',
+    BASE_PATH + '/js/finance.js',
+    BASE_PATH + '/js/charts.js',
+    BASE_PATH + '/js/profile.js',
+    BASE_PATH + '/manifest.json'
 ];
 
-// ========== INSTALL ==========
+// Install - Cache semua file
 self.addEventListener('install', (event) => {
-    console.log('🔧 Service Worker: Installing...');
+    console.log('🔧 SW: Installing v3...');
+    self.skipWaiting();
     
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('📦 Caching assets...');
-                return cache.addAll(ASSETS_TO_CACHE).catch((error) => {
-                    console.warn('⚠️ Some assets failed to cache:', error);
-                });
-            })
-            .then(() => {
-                console.log('✅ Install complete, skip waiting...');
-                return self.skipWaiting();
-            })
-    );
-});
-
-// ========== ACTIVATE ==========
-self.addEventListener('activate', (event) => {
-    console.log('🚀 Service Worker: Activating...');
-    
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames
-                    .filter((cacheName) => cacheName !== CACHE_NAME)
-                    .map((cacheName) => {
-                        console.log('🗑️ Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    })
-            );
-        }).then(() => {
-            console.log('✅ Activation complete, claiming clients...');
-            return self.clients.claim();
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
+                console.log('SW: Cache failed (some files missing):', err);
+            });
         })
     );
 });
 
-// ========== FETCH ==========
-// Strategy: Network First, Cache Fallback
-self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests
-    if (event.request.method !== 'GET') return;
+// Activate - Hapus cache lama
+self.addEventListener('activate', (event) => {
+    console.log('🚀 SW: Activating...');
     
-    // Skip chrome-extension requests
-    if (event.request.url.startsWith('chrome-extension://')) return;
+    event.waitUntil(
+        caches.keys().then((keys) => {
+            return Promise.all(
+                keys.filter(key => key !== CACHE_NAME).map(key => {
+                    console.log('🗑️ SW: Deleting old cache:', key);
+                    return caches.delete(key);
+                })
+            );
+        }).then(() => self.clients.claim())
+    );
+});
+
+// Fetch - Network first, fallback cache
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
     
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                // Cache successful responses
-                if (response && response.status === 200) {
-                    const responseClone = response.clone();
+                if (response.ok) {
+                    const clone = response.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
+                        cache.put(event.request, clone);
                     });
                 }
                 return response;
             })
             .catch(() => {
-                // Network failed, try cache
-                console.log('🌐 Offline - Serving from cache:', event.request.url);
-                return caches.match(event.request).then((cachedResponse) => {
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
-                    // Return a fallback for HTML requests
-                    if (event.request.headers.get('accept').includes('text/html')) {
-                        return caches.match(`${REPO_PATH}/index.html`);
-                    }
-                    // Return offline indicator for other requests
-                    return new Response('Offline - Data tidak tersedia', {
-                        status: 503,
-                        statusText: 'Service Unavailable'
-                    });
-                });
+                return caches.match(event.request);
             })
     );
 });
 
-// ========== MESSAGE HANDLER ==========
+// Message handler - Clear cache manual
 self.addEventListener('message', (event) => {
-    if (event.data === 'skipWaiting') {
-        self.skipWaiting();
-    }
-    
     if (event.data === 'clearCache') {
-        caches.delete(CACHE_NAME).then(() => {
-            console.log('🗑️ Cache cleared by user request');
+        caches.keys().then(keys => {
+            keys.forEach(key => caches.delete(key));
+        }).then(() => {
+            console.log('🗑️ SW: All cache cleared!');
         });
     }
 });
