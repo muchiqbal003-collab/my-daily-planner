@@ -1,5 +1,5 @@
 // ============================================
-// profile.js - Profile & Settings (SVG Icons)
+// profile.js - Profile & Settings (FIXED)
 // ============================================
 
 const Profile = {
@@ -118,135 +118,213 @@ const Profile = {
     },
     
     bindEvents() {
-        if (this._bound) return;
-        this._bound = true;
-        
         // Change photo
-        document.getElementById('btn-change-photo')?.addEventListener('click', () => {
-            document.getElementById('file-photo-input').click();
-        });
+        const btnPhoto = document.getElementById('btn-change-photo');
+        if (btnPhoto) {
+            const newBtn = btnPhoto.cloneNode(true);
+            btnPhoto.parentNode.replaceChild(newBtn, btnPhoto);
+            newBtn.addEventListener('click', () => {
+                document.getElementById('file-photo-input').click();
+            });
+        }
         
-        document.getElementById('file-photo-input')?.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (file.size > 2 * 1024 * 1024) {
-                App.toast('⚠️ Maksimal 2MB!');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const profile = Storage.getProfile();
-                profile.photo = ev.target.result;
-                Storage.saveProfile(profile);
-                this.refresh();
-                App.toast('✅ Foto diupdate!');
-            };
-            reader.readAsDataURL(file);
-        });
-        
-        // Name change
-        document.getElementById('profile-name')?.addEventListener('input', (e) => {
-            const profile = Storage.getProfile();
-            profile.name = e.target.value.trim();
-            Storage.saveProfile(profile);
-        });
-        
-        // Settings
-        document.getElementById('btn-settings')?.addEventListener('click', () => {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            document.getElementById('setting-darkmode').checked = isDark;
-            document.getElementById('modal-settings').classList.add('active');
-        });
-        
-        document.getElementById('modal-settings-close')?.addEventListener('click', () => {
-            document.getElementById('modal-settings').classList.remove('active');
-        });
-        
-        document.querySelector('#modal-settings .modal-backdrop')?.addEventListener('click', () => {
-            document.getElementById('modal-settings').classList.remove('active');
-        });
-        
-        document.getElementById('setting-darkmode')?.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                document.querySelector('meta[name="theme-color"]').content = '#09090d';
-            } else {
-                document.documentElement.setAttribute('data-theme', 'light');
-                document.querySelector('meta[name="theme-color"]').content = '#f5f5f9';
-            }
-            Storage.saveSetting('darkMode', e.target.checked);
-        });
-        
-        // PIN Setup
-        document.getElementById('btn-pin-setup')?.addEventListener('click', () => {
-            App.openPinSetupModal();
-        });
-        
-        // Backup
-        document.getElementById('btn-backup')?.addEventListener('click', () => {
-            const data = Storage.exportAll();
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'hariku-backup-' + new Date().toISOString().split('T')[0] + '.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            App.toast('💾 Backup berhasil!');
-        });
-        
-        // Restore
-        document.getElementById('btn-restore')?.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = (e) => {
+        // File input
+        const fileInput = document.getElementById('file-photo-input');
+        if (fileInput) {
+            const newInput = fileInput.cloneNode(true);
+            fileInput.parentNode.replaceChild(newInput, fileInput);
+            newInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
+                if (file.size > 2 * 1024 * 1024) {
+                    App.toast('⚠️ Maksimal 2MB!');
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    if (Storage.importAll(ev.target.result)) {
-                        App.toast('✅ Data direstore!');
-                        App.refreshAll();
-                    } else {
-                        App.toast('❌ Format file tidak valid!');
-                    }
+                    const profile = Storage.getProfile();
+                    profile.photo = ev.target.result;
+                    Storage.saveProfile(profile);
+                    this.refresh();
+                    App.toast('✅ Foto diupdate!');
                 };
-                reader.readAsText(file);
-            };
-            input.click();
-        });
+                reader.readAsDataURL(file);
+            });
+        }
         
-        // Reset
-        document.getElementById('btn-reset')?.addEventListener('click', () => {
-            document.getElementById('modal-reset').classList.add('active');
-        });
+        // Name input
+        const nameInput = document.getElementById('profile-name');
+        if (nameInput) {
+            const newName = nameInput.cloneNode(true);
+            nameInput.parentNode.replaceChild(newName, nameInput);
+            newName.addEventListener('input', (e) => {
+                const profile = Storage.getProfile();
+                profile.name = e.target.value.trim();
+                Storage.saveProfile(profile);
+            });
+        }
         
-        document.getElementById('btn-reset-confirm')?.addEventListener('click', () => {
-            Storage.resetAll();
-            document.getElementById('modal-reset').classList.remove('active');
-            App.toast('⚠️ Semua data direset!');
-            App.refreshAll();
-        });
+        // Settings button
+        const btnSettings = document.getElementById('btn-settings');
+        if (btnSettings) {
+            const newBtn = btnSettings.cloneNode(true);
+            btnSettings.parentNode.replaceChild(newBtn, btnSettings);
+            newBtn.addEventListener('click', () => {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                document.getElementById('setting-darkmode').checked = isDark;
+                document.getElementById('modal-settings').classList.add('active');
+            });
+        }
         
-        document.getElementById('btn-reset-cancel')?.addEventListener('click', () => {
-            document.getElementById('modal-reset').classList.remove('active');
-        });
+        // Modal settings close
+        const modalSettingsClose = document.getElementById('modal-settings-close');
+        if (modalSettingsClose) {
+            const newClose = modalSettingsClose.cloneNode(true);
+            modalSettingsClose.parentNode.replaceChild(newClose, modalSettingsClose);
+            newClose.addEventListener('click', () => {
+                document.getElementById('modal-settings').classList.remove('active');
+            });
+        }
         
-        document.getElementById('modal-reset-close')?.addEventListener('click', () => {
-            document.getElementById('modal-reset').classList.remove('active');
-        });
+        // Modal settings backdrop
+        const settingsBackdrop = document.querySelector('#modal-settings .modal-backdrop');
+        if (settingsBackdrop) {
+            const newBackdrop = settingsBackdrop.cloneNode(true);
+            settingsBackdrop.parentNode.replaceChild(newBackdrop, settingsBackdrop);
+            newBackdrop.addEventListener('click', () => {
+                document.getElementById('modal-settings').classList.remove('active');
+            });
+        }
         
-        document.querySelector('#modal-reset .modal-backdrop')?.addEventListener('click', () => {
-            document.getElementById('modal-reset').classList.remove('active');
-        });
+        // Dark mode toggle
+        const darkToggle = document.getElementById('setting-darkmode');
+        if (darkToggle) {
+            const newToggle = darkToggle.cloneNode(true);
+            darkToggle.parentNode.replaceChild(newToggle, darkToggle);
+            newToggle.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.querySelector('meta[name="theme-color"]').content = '#09090d';
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.querySelector('meta[name="theme-color"]').content = '#f5f5f9';
+                }
+                Storage.saveSetting('darkMode', e.target.checked);
+            });
+        }
+        
+        // PIN Setup
+        const btnPin = document.getElementById('btn-pin-setup');
+        if (btnPin) {
+            const newPin = btnPin.cloneNode(true);
+            btnPin.parentNode.replaceChild(newPin, btnPin);
+            newPin.addEventListener('click', () => {
+                App.openPinSetupModal();
+            });
+        }
+        
+        // Backup
+        const btnBackup = document.getElementById('btn-backup');
+        if (btnBackup) {
+            const newBackup = btnBackup.cloneNode(true);
+            btnBackup.parentNode.replaceChild(newBackup, btnBackup);
+            newBackup.addEventListener('click', () => {
+                const data = Storage.exportAll();
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'hariku-backup-' + new Date().toISOString().split('T')[0] + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                App.toast('💾 Backup berhasil!');
+            });
+        }
+        
+        // Restore
+        const btnRestore = document.getElementById('btn-restore');
+        if (btnRestore) {
+            const newRestore = btnRestore.cloneNode(true);
+            btnRestore.parentNode.replaceChild(newRestore, btnRestore);
+            newRestore.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        if (Storage.importAll(ev.target.result)) {
+                            App.toast('✅ Data direstore!');
+                            App.refreshAll();
+                        } else {
+                            App.toast('❌ Format file tidak valid!');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            });
+        }
+        
+        // Reset button
+        const btnReset = document.getElementById('btn-reset');
+        if (btnReset) {
+            const newReset = btnReset.cloneNode(true);
+            btnReset.parentNode.replaceChild(newReset, btnReset);
+            newReset.addEventListener('click', () => {
+                document.getElementById('modal-reset').classList.add('active');
+            });
+        }
+        
+        // Modal reset confirm
+        const btnResetConfirm = document.getElementById('btn-reset-confirm');
+        if (btnResetConfirm) {
+            const newConfirm = btnResetConfirm.cloneNode(true);
+            btnResetConfirm.parentNode.replaceChild(newConfirm, btnResetConfirm);
+            newConfirm.addEventListener('click', () => {
+                Storage.resetAll();
+                document.getElementById('modal-reset').classList.remove('active');
+                App.toast('⚠️ Semua data direset!');
+                App.refreshAll();
+            });
+        }
+        
+        // Modal reset cancel
+        const btnResetCancel = document.getElementById('btn-reset-cancel');
+        if (btnResetCancel) {
+            const newCancel = btnResetCancel.cloneNode(true);
+            btnResetCancel.parentNode.replaceChild(newCancel, btnResetCancel);
+            newCancel.addEventListener('click', () => {
+                document.getElementById('modal-reset').classList.remove('active');
+            });
+        }
+        
+        // Modal reset close
+        const modalResetClose = document.getElementById('modal-reset-close');
+        if (modalResetClose) {
+            const newClose = modalResetClose.cloneNode(true);
+            modalResetClose.parentNode.replaceChild(newClose, modalResetClose);
+            newClose.addEventListener('click', () => {
+                document.getElementById('modal-reset').classList.remove('active');
+            });
+        }
+        
+        // Modal reset backdrop
+        const resetBackdrop = document.querySelector('#modal-reset .modal-backdrop');
+        if (resetBackdrop) {
+            const newBackdrop = resetBackdrop.cloneNode(true);
+            resetBackdrop.parentNode.replaceChild(newBackdrop, resetBackdrop);
+            newBackdrop.addEventListener('click', () => {
+                document.getElementById('modal-reset').classList.remove('active');
+            });
+        }
     },
     
     refresh() {
-        this._bound = false; // Reset flag biar re-bind
         this.render(document.getElementById('app-content'));
     },
     
