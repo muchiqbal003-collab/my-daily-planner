@@ -1,0 +1,90 @@
+// ============================================
+// i18n.js - Multi Bahasa & RTL Support
+// ============================================
+
+const I18n = {
+    currentLang: 'id',
+    translations: {},
+    
+    // Inisialisasi bahasa
+    async init() {
+        // Cek bahasa tersimpan di localStorage
+        const saved = Storage.getSetting('language');
+        if (saved) {
+            this.currentLang = saved;
+        }
+        
+        // Load terjemahan
+        await this.loadTranslations();
+        
+        // Apply bahasa
+        this.applyLanguage();
+    },
+    
+    // Load file JSON bahasa
+    async loadTranslations() {
+        try {
+            const response = await fetch(`../locales/${this.currentLang}.json`);
+            if (!response.ok) throw new Error('Gagal load bahasa');
+            this.translations = await response.json();
+        } catch (error) {
+            console.warn('Gagal load file bahasa, fallback ke ID');
+            this.currentLang = 'id';
+            const response = await fetch('../locales/id.json');
+            this.translations = await response.json();
+        }
+    },
+    
+    // Ambil teks berdasarkan key
+    t(key, replacements = {}) {
+        let text = this.translations[key] || key;
+        
+        // Replace placeholder {var}
+        Object.keys(replacements).forEach(k => {
+            text = text.replace(`{${k}}`, replacements[k]);
+        });
+        
+        return text;
+    },
+    
+    // Ganti bahasa
+    async setLanguage(lang) {
+        if (lang === this.currentLang) return;
+        
+        this.currentLang = lang;
+        Storage.saveSetting('language', lang);
+        
+        await this.loadTranslations();
+        this.applyLanguage();
+        
+        // Reload UI
+        App.refreshUI();
+    },
+    
+    // Apply bahasa ke DOM
+    applyLanguage() {
+        const html = document.documentElement;
+        html.lang = this.currentLang;
+        
+        // RTL untuk Arab
+        if (this.currentLang === 'ar') {
+            html.dir = 'rtl';
+        } else {
+            html.dir = 'ltr';
+        }
+        
+        // Update teks statis di HTML
+        this.updateStaticTexts();
+    },
+    
+    // Update teks yang ada di HTML
+    updateStaticTexts() {
+        // Fungsi ini dipanggil setelah semua modul load
+        // Update akan dilakukan di App.refreshUI()
+    },
+    
+    // Cek apakah RTL
+    isRTL() {
+        return this.currentLang === 'ar';
+    }
+};

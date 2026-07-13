@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+    <meta name="theme-color" content="#0f0f14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Hariku">
+    <title>Hariku</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<!-- ==================== PIN SCREEN ==================== -->
+<div id="pin-screen" class="screen" style="display:none;">
+    <div class="pin-container">
+        <div class="pin-avatar" id="pin-avatar">
+            <span id="pin-avatar-emoji">👤</span>
+        </div>
+        <h2 id="pin-greeting">Selamat Datang</h2>
+        <p id="pin-subtitle">Masukkan PIN 6 digit</p>
+        
+        <div class="pin-dots" id="pin-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+        
+        <p class="pin-error" id="pin-error"></p>
+        <p class="pin-cooldown" id="pin-cooldown"></p>
+        
+        <div class="pin-keypad">
+            <div class="keypad-row">
+                <button class="keypad-btn" data-key="1">1</button>
+                <button class="keypad-btn" data-key="2">2</button>
+                <button class="keypad-btn" data-key="3">3</button>
+            </div>
+            <div class="keypad-row">
+                <button class="keypad-btn" data-key="4">4</button>
+                <button class="keypad-btn" data-key="5">5</button>
+                <button class="keypad-btn" data-key="6">6</button>
+            </div>
+            <div class="keypad-row">
+                <button class="keypad-btn" data-key="7">7</button>
+                <button class="keypad-btn" data-key="8">8</button>
+                <button class="keypad-btn" data-key="9">9</button>
+            </div>
+            <div class="keypad-row">
+                <button class="keypad-btn keypad-empty"></button>
+                <button class="keypad-btn" data-key="0">0</button>
+                <button class="keypad-btn keypad-delete" data-key="delete">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/>
+                        <line x1="18" y1="9" x2="12" y2="15"/>
+                        <line x1="12" y1="9" x2="18" y2="15"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <button class="pin-reset-link" id="pin-reset-btn">Lupa PIN? Reset</button>
+    </div>
+</div>
+
+<!-- ==================== APP SCREEN ==================== -->
+<div id="app-screen" class="screen active">
+    
+    <!-- HEADER -->
+    <header class="app-header">
+        <h1 id="app-title">Hariku</h1>
+        <button class="header-btn" id="btn-theme" aria-label="Toggle theme">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+        </button>
+    </header>
+    
+    <!-- MAIN CONTENT -->
+    <main class="app-content" id="app-content">
+        <!-- Konten dirender oleh JS -->
+    </main>
+    
+    <!-- BOTTOM NAVIGATION - Floating Pill -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-tab="dashboard">
+            <svg class="nav-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-item" data-tab="tasks">
+            <svg class="nav-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+            <span class="nav-label">Tugas</span>
+        </button>
+        <button class="nav-item" data-tab="finance">
+            <svg class="nav-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+            </svg>
+            <span class="nav-label">Uang</span>
+        </button>
+        <button class="nav-item" data-tab="profile">
+            <svg class="nav-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="nav-label">Profil</span>
+        </button>
+    </nav>
+</div>
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- Modal Task -->
+<div class="modal" id="modal-task">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h3 id="modal-task-title">Tambah Tugas</h3>
+            <button class="modal-close" id="modal-task-close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div>
+                <label class="input-label">Nama Tugas</label>
+                <input type="text" class="input-field" id="input-task-name" placeholder="Apa yang harus dikerjakan?">
+            </div>
+            <div>
+                <label class="input-label">Catatan</label>
+                <textarea class="input-field" id="input-task-note" placeholder="Tambahkan detail..." rows="2" style="resize:none;"></textarea>
+            </div>
+            <div>
+                <label class="input-label">Deadline</label>
+                <input type="date" class="input-field" id="input-task-date">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btn-task-cancel">Batal</button>
+            <button class="btn btn-primary" id="btn-task-save">Simpan Tugas</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Expense -->
+<div class="modal" id="modal-expense">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h3 id="modal-expense-title">Tambah Pengeluaran</h3>
+            <button class="modal-close" id="modal-expense-close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div>
+                <label class="input-label">Jumlah (Rp)</label>
+                <input type="number" class="input-field input-amount" id="input-expense-amount" placeholder="0" inputmode="numeric">
+            </div>
+            <div>
+                <label class="input-label">Kategori</label>
+                <select class="input-field" id="input-expense-category"></select>
+            </div>
+            <div>
+                <label class="input-label">Catatan</label>
+                <input type="text" class="input-field" id="input-expense-note" placeholder="Untuk apa?">
+            </div>
+            <div>
+                <label class="input-label">Tanggal</label>
+                <input type="date" class="input-field" id="input-expense-date">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btn-expense-cancel">Batal</button>
+            <button class="btn btn-danger" id="btn-expense-delete" style="display:none;">Hapus</button>
+            <button class="btn btn-primary" id="btn-expense-save">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Settings -->
+<div class="modal" id="modal-settings">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h3>Pengaturan</h3>
+            <button class="modal-close" id="modal-settings-close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body settings-body">
+            <div class="setting-row">
+                <div>
+                    <div style="font-weight:600;font-size:14px;">Mode Gelap</div>
+                    <div style="font-size:11px;color:var(--text-tertiary);">Tampilan lebih nyaman di malam hari</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="setting-darkmode" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal PIN Setup -->
+<div class="modal" id="modal-pin-setup">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h3 id="modal-pin-title">Atur PIN</h3>
+            <button class="modal-close" id="modal-pin-close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" style="align-items:center;">
+            <div style="font-size:40px;margin-bottom:8px;">🔐</div>
+            <p id="modal-pin-desc" style="color:var(--text-secondary);font-size:13px;font-weight:500;">Buat PIN 6 digit untuk keamanan</p>
+            <div class="pin-dots" id="pin-dots-modal" style="justify-content:center;">
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>
+            <p class="pin-error" id="pin-modal-error"></p>
+            <div class="pin-keypad" style="margin:0 auto;">
+                <div class="keypad-row">
+                    <button class="keypad-btn keypad-btn-modal" data-key="1">1</button>
+                    <button class="keypad-btn keypad-btn-modal" data-key="2">2</button>
+                    <button class="keypad-btn keypad-btn-modal" data-key="3">3</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="keypad-btn keypad-btn-modal" data-key="4">4</button>
+                    <button class="keypad-btn keypad-btn-modal" data-key="5">5</button>
+                    <button class="keypad-btn keypad-btn-modal" data-key="6">6</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="keypad-btn keypad-btn-modal" data-key="7">7</button>
+                    <button class="keypad-btn keypad-btn-modal" data-key="8">8</button>
+                    <button class="keypad-btn keypad-btn-modal" data-key="9">9</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="keypad-btn keypad-empty"></button>
+                    <button class="keypad-btn keypad-btn-modal" data-key="0">0</button>
+                    <button class="keypad-btn keypad-delete keypad-btn-modal" data-key="delete">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/>
+                            <line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reset -->
+<div class="modal" id="modal-reset">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h3>Reset Data</h3>
+            <button class="modal-close" id="modal-reset-close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+            <div style="font-size:44px;margin-bottom:12px;">⚠️</div>
+            <p style="font-weight:600;font-size:15px;">Hapus semua data?</p>
+            <p style="color:var(--text-tertiary);font-size:12px;">Tindakan ini tidak bisa dibatalkan</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btn-reset-cancel">Batal</button>
+            <button class="btn btn-danger" id="btn-reset-confirm">Ya, Reset</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="file-photo-input" accept="image/*" style="display:none;">
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- SCRIPTS -->
+<script src="js/storage.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/finance.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/app.js"></script>
+
+<!-- Service Worker -->
+<!-- Service Worker Registration -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            const swPath = '/my-daily-planner/sw.js'; // ⬅️ Sesuaikan path
+            
+            navigator.serviceWorker.register(swPath)
+                .then(function(registration) {
+                    console.log('✅ Service Worker registered:', registration.scope);
+                    
+                    // Cek update
+                    registration.addEventListener('updatefound', function() {
+                        console.log('🔄 Update found!');
+                    });
+                })
+                .catch(function(error) {
+                    console.error('❌ Service Worker registration failed:', error);
+                });
+        });
+    }
+</script>
+
+</body>
+</html>
