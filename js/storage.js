@@ -82,7 +82,7 @@ const Storage = {
         habit.createdAt = new Date().toISOString();
         habit.streak = 0;
         habit.bestStreak = 0;
-        habit.logs = {}; // { '2024-01-15': true, '2024-01-16': false }
+        habit.logs = {};
         habits.push(habit);
         this.saveHabits(habits);
         return habit;
@@ -174,8 +174,29 @@ const Storage = {
     },
     
     // ========== INCOMES ==========
-getIncomes() { return this.load('incomes', []); },
-saveIncomes(incomes) { return this.save('incomes', incomes); },
+    getIncomes() { return this.load('incomes', []); },
+    saveIncomes(incomes) { return this.save('incomes', incomes); },
+    
+    addIncome(income) {
+        const incomes = this.getIncomes();
+        income.id = this.generateId();
+        income.createdAt = new Date().toISOString();
+        incomes.unshift(income);
+        this.saveIncomes(incomes);
+        return income;
+    },
+    updateIncome(id, updates) {
+        const incomes = this.getIncomes();
+        const idx = incomes.findIndex(i => i.id === id);
+        if (idx !== -1) {
+            incomes[idx] = { ...incomes[idx], ...updates };
+            this.saveIncomes(incomes);
+            return incomes[idx];
+        }
+        return null;
+    },
+    deleteIncome(id) { this.saveIncomes(this.getIncomes().filter(i => i.id !== id)); },
+    
     // ========== LIFE GOALS ==========
     getGoals() { return this.load('goals', []); },
     saveGoals(goals) { return this.save('goals', goals); },
@@ -272,7 +293,7 @@ saveIncomes(incomes) { return this.save('incomes', incomes); },
     addBook(book) {
         const books = this.getBooks();
         book.id = this.generateId();
-        book.status = 'wishlist'; // wishlist, reading, done
+        book.status = 'wishlist';
         books.push(book);
         this.saveBooks(books);
         return book;
@@ -336,7 +357,6 @@ saveIncomes(incomes) { return this.save('incomes', incomes); },
         return this.save('achievements', achievements);
     },
     checkAchievements() {
-        // Auto-check achievements
         const tasks = this.getTasks();
         const habits = this.getHabits();
         const achievements = this.getAchievements();
@@ -402,7 +422,7 @@ saveIncomes(incomes) { return this.save('incomes', incomes); },
     },
     
     // ========== PROFILE ==========
-    getProfile() { return this.load('profile', { name: '', photo: null }); },
+    getProfile() { return this.load('profile', { name: '', photo: null, quote: '' }); },
     saveProfile(profile) { return this.save('profile', profile); },
     
     // ========== PIN ==========
@@ -417,6 +437,7 @@ saveIncomes(incomes) { return this.save('incomes', incomes); },
             tasks: this.getTasks(),
             habits: this.getHabits(),
             expenses: this.getExpenses(),
+            incomes: this.getIncomes(),
             goals: this.getGoals(),
             schedules: this.getSchedules(),
             focus: this.getFocusSessions(),
@@ -440,6 +461,7 @@ saveIncomes(incomes) { return this.save('incomes', incomes); },
             if (data.tasks) this.saveTasks(data.tasks);
             if (data.habits) this.saveHabits(data.habits);
             if (data.expenses) this.saveExpenses(data.expenses);
+            if (data.incomes) this.saveIncomes(data.incomes);
             if (data.goals) this.saveGoals(data.goals);
             if (data.schedules) this.saveSchedules(data.schedules);
             if (data.focus) this.save('focus', data.focus);
@@ -478,23 +500,17 @@ saveIncomes(incomes) { return this.save('incomes', incomes); },
         const expenses = this.getExpenses();
         const focusSessions = this.getFocusSessions();
         
-        // Habit completion rate
         let habitTotal = 0, habitDone = 0;
         habits.forEach(h => {
             if (h.logs[today]) habitDone++;
             habitTotal++;
         });
         
-        // Focus this week
         const focusThisWeek = focusSessions.filter(s => s.date >= weekStartStr).length;
-        
-        // Tasks stats
         const tasksToday = tasks.filter(t => t.date === today && !t.completed).length;
         const tasksCompletedToday = tasks.filter(t => t.completed && t.completedAt && t.completedAt.startsWith(today)).length;
         const tasksPending = tasks.filter(t => !t.completed).length;
         const tasksCompletedTotal = tasks.filter(t => t.completed).length;
-        
-        // Expense stats
         const expenseToday = expenses.filter(e => e.date === today).reduce((s, e) => s + e.amount, 0);
         const expenseWeek = expenses.filter(e => e.date >= weekStartStr).reduce((s, e) => s + e.amount, 0);
         const expenseMonth = expenses.filter(e => e.date >= monthStart).reduce((s, e) => s + e.amount, 0);
