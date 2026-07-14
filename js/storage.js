@@ -173,6 +173,9 @@ const Storage = {
         ]);
     },
     
+    // ========== INCOMES ==========
+getIncomes() { return this.load('incomes', []); },
+saveIncomes(incomes) { return this.save('incomes', incomes); },
     // ========== LIFE GOALS ==========
     getGoals() { return this.load('goals', []); },
     saveGoals(goals) { return this.save('goals', goals); },
