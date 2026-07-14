@@ -1,13 +1,13 @@
 {
-    "name": "Hariku - Tugas & Keuangan",
+    "name": "Hariku - Productivity & Finance",
     "short_name": "Hariku",
-    "description": "Aplikasi manajemen tugas harian dan pencatatan keuangan pribadi",
+    "description": "Aplikasi produktivitas lengkap: tugas, habit, keuangan, goals, jurnal, fokus, dan banyak lagi",
     "start_url": "/my-daily-planner/",
     "scope": "/my-daily-planner/",
     "display": "standalone",
     "orientation": "portrait",
-    "background_color": "#09090d",
-    "theme_color": "#09090d",
+    "background_color": "#121212",
+    "theme_color": "#121212",
     "icons": [
         {
             "src": "icons/icon-192.png",
@@ -22,5 +22,7 @@
             "purpose": "any maskable"
         }
     ],
-    "lang": "id"
+    "lang": "id",
+    "categories": ["productivity", "finance", "lifestyle"],
+    "prefer_related_applications": false
 }
