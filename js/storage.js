@@ -1,17 +1,17 @@
 // ============================================
-// storage.js - localStorage Handler
+// storage.js - All Data Handler (V3.0)
 // ============================================
 
 const Storage = {
     PREFIX: 'hariku_',
     
-    // ========== GENERIC ==========
+    // ========== GENERIC CRUD ==========
     save(key, data) {
         try {
             localStorage.setItem(this.PREFIX + key, JSON.stringify(data));
             return true;
         } catch(e) {
-            console.error('Storage error:', e);
+            console.error('Storage full:', e);
             return false;
         }
     },
@@ -31,18 +31,17 @@ const Storage = {
         localStorage.removeItem(this.PREFIX + key);
     },
     
-    // ========== TASKS ==========
-    getTasks() {
-        return this.load('tasks', []);
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
     },
     
-    saveTasks(tasks) {
-        return this.save('tasks', tasks);
-    },
+    // ========== TASKS ==========
+    getTasks() { return this.load('tasks', []); },
+    saveTasks(tasks) { return this.save('tasks', tasks); },
     
     addTask(task) {
         const tasks = this.getTasks();
-        task.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        task.id = this.generateId();
         task.createdAt = new Date().toISOString();
         task.completed = false;
         task.completedAt = null;
@@ -50,73 +49,118 @@ const Storage = {
         this.saveTasks(tasks);
         return task;
     },
-    
     updateTask(id, updates) {
         const tasks = this.getTasks();
-        const index = tasks.findIndex(t => t.id === id);
-        if (index !== -1) {
-            tasks[index] = { ...tasks[index], ...updates, updatedAt: new Date().toISOString() };
+        const idx = tasks.findIndex(t => t.id === id);
+        if (idx !== -1) {
+            tasks[idx] = { ...tasks[idx], ...updates, updatedAt: new Date().toISOString() };
             this.saveTasks(tasks);
-            return tasks[index];
+            return tasks[idx];
         }
         return null;
     },
-    
-    deleteTask(id) {
-        const tasks = this.getTasks().filter(t => t.id !== id);
-        this.saveTasks(tasks);
-    },
-    
+    deleteTask(id) { this.saveTasks(this.getTasks().filter(t => t.id !== id)); },
     toggleTask(id) {
         const tasks = this.getTasks();
-        const index = tasks.findIndex(t => t.id === id);
-        if (index !== -1) {
-            tasks[index].completed = !tasks[index].completed;
-            tasks[index].completedAt = tasks[index].completed ? new Date().toISOString() : null;
+        const idx = tasks.findIndex(t => t.id === id);
+        if (idx !== -1) {
+            tasks[idx].completed = !tasks[idx].completed;
+            tasks[idx].completedAt = tasks[idx].completed ? new Date().toISOString() : null;
             this.saveTasks(tasks);
-            return tasks[index];
+            return tasks[idx];
         }
         return null;
+    },
+    
+    // ========== HABITS ==========
+    getHabits() { return this.load('habits', []); },
+    saveHabits(habits) { return this.save('habits', habits); },
+    
+    addHabit(habit) {
+        const habits = this.getHabits();
+        habit.id = this.generateId();
+        habit.createdAt = new Date().toISOString();
+        habit.streak = 0;
+        habit.bestStreak = 0;
+        habit.logs = {}; // { '2024-01-15': true, '2024-01-16': false }
+        habits.push(habit);
+        this.saveHabits(habits);
+        return habit;
+    },
+    updateHabit(id, updates) {
+        const habits = this.getHabits();
+        const idx = habits.findIndex(h => h.id === id);
+        if (idx !== -1) {
+            habits[idx] = { ...habits[idx], ...updates };
+            this.saveHabits(habits);
+            return habits[idx];
+        }
+        return null;
+    },
+    deleteHabit(id) { this.saveHabits(this.getHabits().filter(h => h.id !== id)); },
+    toggleHabitLog(habitId, date) {
+        const habits = this.getHabits();
+        const idx = habits.findIndex(h => h.id === habitId);
+        if (idx !== -1) {
+            const habit = habits[idx];
+            habit.logs[date] = !habit.logs[date];
+            this.recalculateStreak(habit);
+            this.saveHabits(habits);
+            return habit;
+        }
+        return null;
+    },
+    recalculateStreak(habit) {
+        let streak = 0;
+        const today = new Date();
+        
+        for (let i = 0; i < 365; i++) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            
+            if (habit.logs[dateStr]) {
+                streak++;
+            } else if (i === 0) {
+                continue;
+            } else {
+                break;
+            }
+        }
+        
+        habit.streak = streak;
+        if (streak > habit.bestStreak) {
+            habit.bestStreak = streak;
+        }
     },
     
     // ========== EXPENSES ==========
-    getExpenses() {
-        return this.load('expenses', []);
-    },
-    
-    saveExpenses(expenses) {
-        return this.save('expenses', expenses);
-    },
+    getExpenses() { return this.load('expenses', []); },
+    saveExpenses(expenses) { return this.save('expenses', expenses); },
     
     addExpense(expense) {
         const expenses = this.getExpenses();
-        expense.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        expense.id = this.generateId();
         expense.createdAt = new Date().toISOString();
         expenses.unshift(expense);
         this.saveExpenses(expenses);
         return expense;
     },
-    
     updateExpense(id, updates) {
         const expenses = this.getExpenses();
-        const index = expenses.findIndex(e => e.id === id);
-        if (index !== -1) {
-            expenses[index] = { ...expenses[index], ...updates, updatedAt: new Date().toISOString() };
+        const idx = expenses.findIndex(e => e.id === id);
+        if (idx !== -1) {
+            expenses[idx] = { ...expenses[idx], ...updates };
             this.saveExpenses(expenses);
-            return expenses[index];
+            return expenses[idx];
         }
         return null;
     },
+    deleteExpense(id) { this.saveExpenses(this.getExpenses().filter(e => e.id !== id)); },
     
-    deleteExpense(id) {
-        const expenses = this.getExpenses().filter(e => e.id !== id);
-        this.saveExpenses(expenses);
-    },
-    
-    // ========== CATEGORIES ==========
-    getDefaultCategories() {
-        return [
-            { id: 'food', icon: '🍔', name: 'Makanan & Jajan' },
+    getCategories() {
+        return this.load('categories', [
+            { id: 'food', icon: '🍔', name: 'Makanan' },
             { id: 'transport', icon: '🚌', name: 'Transportasi' },
             { id: 'education', icon: '📚', name: 'Pendidikan' },
             { id: 'health', icon: '💊', name: 'Kesehatan' },
@@ -126,104 +170,346 @@ const Storage = {
             { id: 'investment', icon: '📈', name: 'Investasi' },
             { id: 'savings', icon: '💰', name: 'Tabungan' },
             { id: 'other', icon: '❓', name: 'Lainnya' }
-        ];
+        ]);
     },
     
-    getCategories() {
-        return this.load('categories', this.getDefaultCategories());
+    // ========== LIFE GOALS ==========
+    getGoals() { return this.load('goals', []); },
+    saveGoals(goals) { return this.save('goals', goals); },
+    
+    addGoal(goal) {
+        const goals = this.getGoals();
+        goal.id = this.generateId();
+        goal.createdAt = new Date().toISOString();
+        goal.progress = 0;
+        goal.completed = false;
+        goal.milestones = [];
+        goals.push(goal);
+        this.saveGoals(goals);
+        return goal;
     },
+    updateGoal(id, updates) {
+        const goals = this.getGoals();
+        const idx = goals.findIndex(g => g.id === id);
+        if (idx !== -1) {
+            goals[idx] = { ...goals[idx], ...updates };
+            this.saveGoals(goals);
+            return goals[idx];
+        }
+        return null;
+    },
+    deleteGoal(id) { this.saveGoals(this.getGoals().filter(g => g.id !== id)); },
+    
+    // ========== SCHEDULE (Time Blocking) ==========
+    getSchedules() { return this.load('schedules', []); },
+    saveSchedules(schedules) { return this.save('schedules', schedules); },
+    
+    addSchedule(schedule) {
+        const schedules = this.getSchedules();
+        schedule.id = this.generateId();
+        schedules.push(schedule);
+        this.saveSchedules(schedules);
+        return schedule;
+    },
+    updateSchedule(id, updates) {
+        const schedules = this.getSchedules();
+        const idx = schedules.findIndex(s => s.id === id);
+        if (idx !== -1) {
+            schedules[idx] = { ...schedules[idx], ...updates };
+            this.saveSchedules(schedules);
+            return schedules[idx];
+        }
+        return null;
+    },
+    deleteSchedule(id) { this.saveSchedules(this.getSchedules().filter(s => s.id !== id)); },
+    
+    // ========== POMODORO FOCUS ==========
+    getFocusSessions() { return this.load('focus', []); },
+    saveFocusSession(session) {
+        const sessions = this.getFocusSessions();
+        sessions.push(session);
+        return this.save('focus', sessions);
+    },
+    
+    // ========== JOURNAL ==========
+    getJournals() { return this.load('journals', []); },
+    saveJournals(journals) { return this.save('journals', journals); },
+    
+    addJournal(journal) {
+        const journals = this.getJournals();
+        journal.id = this.generateId();
+        journal.createdAt = new Date().toISOString();
+        journals.unshift(journal);
+        this.saveJournals(journals);
+        return journal;
+    },
+    getTodayJournal() {
+        const today = new Date().toISOString().split('T')[0];
+        return this.getJournals().find(j => j.date === today) || null;
+    },
+    
+    // ========== IDEAS ==========
+    getIdeas() { return this.load('ideas', []); },
+    saveIdeas(ideas) { return this.save('ideas', ideas); },
+    
+    addIdea(idea) {
+        const ideas = this.getIdeas();
+        idea.id = this.generateId();
+        idea.createdAt = new Date().toISOString();
+        ideas.unshift(idea);
+        this.saveIdeas(ideas);
+        return idea;
+    },
+    deleteIdea(id) { this.saveIdeas(this.getIdeas().filter(i => i.id !== id)); },
+    
+    // ========== BOOKS ==========
+    getBooks() { return this.load('books', []); },
+    saveBooks(books) { return this.save('books', books); },
+    
+    addBook(book) {
+        const books = this.getBooks();
+        book.id = this.generateId();
+        book.status = 'wishlist'; // wishlist, reading, done
+        books.push(book);
+        this.saveBooks(books);
+        return book;
+    },
+    updateBook(id, updates) {
+        const books = this.getBooks();
+        const idx = books.findIndex(b => b.id === id);
+        if (idx !== -1) {
+            books[idx] = { ...books[idx], ...updates };
+            this.saveBooks(books);
+            return books[idx];
+        }
+        return null;
+    },
+    deleteBook(id) { this.saveBooks(this.getBooks().filter(b => b.id !== id)); },
+    
+    // ========== LEARN WISHLIST ==========
+    getLearnList() { return this.load('learn', []); },
+    saveLearnList(list) { return this.save('learn', list); },
+    
+    addLearnItem(item) {
+        const list = this.getLearnList();
+        item.id = this.generateId();
+        item.progress = 0;
+        list.push(item);
+        this.saveLearnList(list);
+        return item;
+    },
+    updateLearnItem(id, updates) {
+        const list = this.getLearnList();
+        const idx = list.findIndex(l => l.id === id);
+        if (idx !== -1) {
+            list[idx] = { ...list[idx], ...updates };
+            this.saveLearnList(list);
+            return list[idx];
+        }
+        return null;
+    },
+    deleteLearnItem(id) { this.saveLearnList(this.getLearnList().filter(l => l.id !== id)); },
+    
+    // ========== MOOD ==========
+    getMoods() { return this.load('moods', {}); },
+    saveMood(date, mood) {
+        const moods = this.getMoods();
+        moods[date] = { mood, timestamp: new Date().toISOString() };
+        return this.save('moods', moods);
+    },
+    getTodayMood() {
+        const today = new Date().toISOString().split('T')[0];
+        const moods = this.getMoods();
+        return moods[today] || null;
+    },
+    
+    // ========== ACHIEVEMENTS ==========
+    getAchievements() { return this.load('achievements', []); },
+    addAchievement(achievement) {
+        const achievements = this.getAchievements();
+        achievement.id = this.generateId();
+        achievement.date = new Date().toISOString();
+        achievements.unshift(achievement);
+        return this.save('achievements', achievements);
+    },
+    checkAchievements() {
+        // Auto-check achievements
+        const tasks = this.getTasks();
+        const habits = this.getHabits();
+        const achievements = this.getAchievements();
+        
+        const completedTasks = tasks.filter(t => t.completed).length;
+        const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0);
+        
+        const newAchievements = [];
+        
+        if (completedTasks >= 10 && !achievements.find(a => a.type === 'tasks-10')) {
+            newAchievements.push({ type: 'tasks-10', title: '✅ 10 Tugas Selesai', icon: 'check-square', color: '#3B82F6' });
+        }
+        if (completedTasks >= 50 && !achievements.find(a => a.type === 'tasks-50')) {
+            newAchievements.push({ type: 'tasks-50', title: '🏆 50 Tugas Selesai', icon: 'trophy', color: '#F59E0B' });
+        }
+        if (completedTasks >= 100 && !achievements.find(a => a.type === 'tasks-100')) {
+            newAchievements.push({ type: 'tasks-100', title: '👑 100 Tugas Selesai', icon: 'crown', color: '#8B5CF6' });
+        }
+        if (bestStreak >= 7 && !achievements.find(a => a.type === 'streak-7')) {
+            newAchievements.push({ type: 'streak-7', title: '🔥 Streak 7 Hari', icon: 'flame', color: '#F59E0B' });
+        }
+        if (bestStreak >= 30 && !achievements.find(a => a.type === 'streak-30')) {
+            newAchievements.push({ type: 'streak-30', title: '💪 Streak 30 Hari', icon: 'zap', color: '#22C55E' });
+        }
+        
+        newAchievements.forEach(a => this.addAchievement(a));
+        return newAchievements;
+    },
+    
+    // ========== REMINDERS ==========
+    getReminders() { return this.load('reminders', []); },
+    saveReminders(reminders) { return this.save('reminders', reminders); },
+    
+    addReminder(reminder) {
+        const reminders = this.getReminders();
+        reminder.id = this.generateId();
+        reminders.push(reminder);
+        this.saveReminders(reminders);
+        return reminder;
+    },
+    updateReminder(id, updates) {
+        const reminders = this.getReminders();
+        const idx = reminders.findIndex(r => r.id === id);
+        if (idx !== -1) {
+            reminders[idx] = { ...reminders[idx], ...updates };
+            this.saveReminders(reminders);
+            return reminders[idx];
+        }
+        return null;
+    },
+    deleteReminder(id) { this.saveReminders(this.getReminders().filter(r => r.id !== id)); },
     
     // ========== SETTINGS ==========
-    getSettings() {
-        return this.load('settings', {});
+    getSettings() { return this.load('settings', {}); },
+    getSetting(key, def = null) {
+        const s = this.getSettings();
+        return s[key] !== undefined ? s[key] : def;
     },
-    
-    getSetting(key, defaultValue = null) {
-        const settings = this.getSettings();
-        return settings[key] !== undefined ? settings[key] : defaultValue;
-    },
-    
     saveSetting(key, value) {
-        const settings = this.getSettings();
-        settings[key] = value;
-        return this.save('settings', settings);
+        const s = this.getSettings();
+        s[key] = value;
+        return this.save('settings', s);
     },
     
     // ========== PROFILE ==========
-    getProfile() {
-        return this.load('profile', { name: '', photo: null });
-    },
-    
-    saveProfile(profile) {
-        return this.save('profile', profile);
-    },
+    getProfile() { return this.load('profile', { name: '', photo: null }); },
+    saveProfile(profile) { return this.save('profile', profile); },
     
     // ========== PIN ==========
-    getPINHash() {
-        return this.load('pin_hash', null);
-    },
+    getPINHash() { return this.load('pin_hash', null); },
+    savePINHash(hash) { return this.save('pin_hash', hash); },
+    hasPin() { return !!this.getPINHash(); },
     
-    savePINHash(hash) {
-        return this.save('pin_hash', hash);
-    },
-    
-    hasPin() {
-        return !!this.getPINHash();
-    },
-    
-    // ========== BACKUP & RESTORE ==========
+    // ========== BACKUP/RESTORE ==========
     exportAll() {
-        const data = {
-            version: '2.0',
+        return JSON.stringify({
+            version: '3.0',
             tasks: this.getTasks(),
+            habits: this.getHabits(),
             expenses: this.getExpenses(),
+            goals: this.getGoals(),
+            schedules: this.getSchedules(),
+            focus: this.getFocusSessions(),
+            journals: this.getJournals(),
+            ideas: this.getIdeas(),
+            books: this.getBooks(),
+            learn: this.getLearnList(),
+            moods: this.getMoods(),
+            achievements: this.getAchievements(),
+            reminders: this.getReminders(),
             categories: this.getCategories(),
             settings: this.getSettings(),
             profile: this.getProfile(),
             exportDate: new Date().toISOString()
-        };
-        return JSON.stringify(data, null, 2);
+        }, null, 2);
     },
     
-    importAll(jsonString) {
+    importAll(json) {
         try {
-            const data = JSON.parse(jsonString);
-            if (!data.tasks && !data.expenses) throw new Error('Invalid format');
-            
+            const data = JSON.parse(json);
             if (data.tasks) this.saveTasks(data.tasks);
+            if (data.habits) this.saveHabits(data.habits);
             if (data.expenses) this.saveExpenses(data.expenses);
+            if (data.goals) this.saveGoals(data.goals);
+            if (data.schedules) this.saveSchedules(data.schedules);
+            if (data.focus) this.save('focus', data.focus);
+            if (data.journals) this.saveJournals(data.journals);
+            if (data.ideas) this.saveIdeas(data.ideas);
+            if (data.books) this.saveBooks(data.books);
+            if (data.learn) this.saveLearnList(data.learn);
+            if (data.moods) this.save('moods', data.moods);
+            if (data.achievements) this.save('achievements', data.achievements);
+            if (data.reminders) this.saveReminders(data.reminders);
             if (data.categories) this.save('categories', data.categories);
             if (data.profile) this.saveProfile(data.profile);
-            // Don't overwrite PIN
             return true;
         } catch(e) {
-            console.error('Import error:', e);
+            console.error('Import failed:', e);
             return false;
         }
     },
     
-    // ========== RESET ==========
     resetAll() {
-        const keys = Object.keys(localStorage).filter(k => k.startsWith(this.PREFIX));
-        keys.forEach(k => localStorage.removeItem(k));
-        return true;
+        Object.keys(localStorage)
+            .filter(k => k.startsWith(this.PREFIX))
+            .forEach(k => localStorage.removeItem(k));
     },
     
     // ========== STATS ==========
     getStats() {
-        const tasks = this.getTasks();
-        const expenses = this.getExpenses();
         const today = new Date().toISOString().split('T')[0];
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const weekStartStr = weekStart.toISOString().split('T')[0];
         const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
         
+        const tasks = this.getTasks();
+        const habits = this.getHabits();
+        const expenses = this.getExpenses();
+        const focusSessions = this.getFocusSessions();
+        
+        // Habit completion rate
+        let habitTotal = 0, habitDone = 0;
+        habits.forEach(h => {
+            if (h.logs[today]) habitDone++;
+            habitTotal++;
+        });
+        
+        // Focus this week
+        const focusThisWeek = focusSessions.filter(s => s.date >= weekStartStr).length;
+        
+        // Tasks stats
+        const tasksToday = tasks.filter(t => t.date === today && !t.completed).length;
+        const tasksCompletedToday = tasks.filter(t => t.completed && t.completedAt && t.completedAt.startsWith(today)).length;
+        const tasksPending = tasks.filter(t => !t.completed).length;
+        const tasksCompletedTotal = tasks.filter(t => t.completed).length;
+        
+        // Expense stats
+        const expenseToday = expenses.filter(e => e.date === today).reduce((s, e) => s + e.amount, 0);
+        const expenseWeek = expenses.filter(e => e.date >= weekStartStr).reduce((s, e) => s + e.amount, 0);
+        const expenseMonth = expenses.filter(e => e.date >= monthStart).reduce((s, e) => s + e.amount, 0);
+        
         return {
-            tasksToday: tasks.filter(t => t.date === today && !t.completed).length,
-            tasksPending: tasks.filter(t => !t.completed).length,
-            tasksCompletedToday: tasks.filter(t => t.completed && t.completedAt && t.completedAt.startsWith(today)).length,
-            expenseToday: expenses.filter(e => e.date === today).reduce((s, e) => s + e.amount, 0),
-            expenseMonth: expenses.filter(e => e.date >= monthStart).reduce((s, e) => s + e.amount, 0),
-            totalExpenses: expenses.length,
-            totalTasks: tasks.length
+            tasksToday,
+            tasksCompletedToday,
+            tasksPending,
+            tasksCompletedTotal,
+            habitDone,
+            habitTotal,
+            habitRate: habitTotal > 0 ? Math.round((habitDone / habitTotal) * 100) : 0,
+            expenseToday,
+            expenseWeek,
+            expenseMonth,
+            focusThisWeek,
+            focusTotal: focusSessions.length,
+            bestStreak: Math.max(...habits.map(h => h.bestStreak), 0)
         };
     }
 };
