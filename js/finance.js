@@ -1,10 +1,10 @@
 // ============================================
-// finance.js - Keuangan V3.0
+// finance.js - Keuangan V3.0 (FIXED)
 // Ringkasan + Pemasukan + Pengeluaran
 // ============================================
 
 const Finance = {
-    activeTab: 'ringkasan', // ringkasan, pemasukan, pengeluaran
+    activeTab: 'ringkasan',
     editingExpenseId: null,
     editingIncomeId: null,
     
@@ -17,21 +17,21 @@ const Finance = {
                     <button class="finance-tab ${this.activeTab === 'ringkasan' ? 'active' : ''}" data-tab="ringkasan" 
                         style="flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:12px;
                         ${this.activeTab === 'ringkasan' ? 'background:var(--bg-secondary);color:var(--text-primary);box-shadow:var(--shadow-sm);' : 'background:transparent;color:var(--text-tertiary);'}">
-                        <i data-lucide="pie-chart" width="14" height="14" style="vertical-align:middle;margin-right:4px;"></i> Ringkasan
+                        <i data-lucide="pie-chart" width="14" height="14"></i> Ringkasan
                     </button>
                     <button class="finance-tab ${this.activeTab === 'pemasukan' ? 'active' : ''}" data-tab="pemasukan"
                         style="flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:12px;
                         ${this.activeTab === 'pemasukan' ? 'background:var(--bg-secondary);color:var(--text-primary);box-shadow:var(--shadow-sm);' : 'background:transparent;color:var(--text-tertiary);'}">
-                        <i data-lucide="trending-up" width="14" height="14" style="vertical-align:middle;margin-right:4px;"></i> Pemasukan
+                        <i data-lucide="trending-up" width="14" height="14"></i> Pemasukan
                     </button>
                     <button class="finance-tab ${this.activeTab === 'pengeluaran' ? 'active' : ''}" data-tab="pengeluaran"
                         style="flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:12px;
                         ${this.activeTab === 'pengeluaran' ? 'background:var(--bg-secondary);color:var(--text-primary);box-shadow:var(--shadow-sm);' : 'background:transparent;color:var(--text-tertiary);'}">
-                        <i data-lucide="trending-down" width="14" height="14" style="vertical-align:middle;margin-right:4px;"></i> Pengeluaran
+                        <i data-lucide="trending-down" width="14" height="14"></i> Pengeluaran
                     </button>
                 </div>
                 
-                <!-- Content Area -->
+                <!-- Content -->
                 <div id="finance-content">
                     ${this.activeTab === 'ringkasan' ? this.renderRingkasan() : ''}
                     ${this.activeTab === 'pemasukan' ? this.renderPemasukan() : ''}
@@ -44,7 +44,7 @@ const Finance = {
         container.innerHTML = html;
         this.bindTabEvents();
         
-        if (this.activeTab === 'ringkasan') this.renderDonutChart();
+        if (this.activeTab === 'ringkasan') setTimeout(() => this.renderDonutChart(), 150);
         if (this.activeTab === 'pemasukan') this.bindPemasukanEvents();
         if (this.activeTab === 'pengeluaran') this.bindPengeluaranEvents();
         
@@ -53,8 +53,8 @@ const Finance = {
     
     // ==================== RINGKASAN ====================
     renderRingkasan() {
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
         const today = new Date().toISOString().split('T')[0];
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
         
         const incomes = Storage.getIncomes ? Storage.getIncomes() : [];
         const expenses = Storage.getExpenses();
@@ -66,14 +66,13 @@ const Finance = {
         const budget = Storage.getSetting('monthlyBudget', 5000000);
         const budgetUsage = budget > 0 ? Math.round((expenseMonth / budget) * 100) : 0;
         
-        // Weekly stats
+        // Weekly expense
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         const weekStartStr = weekStart.toISOString().split('T')[0];
         const expenseWeek = expenses.filter(e => e.date >= weekStartStr).reduce((s, e) => s + e.amount, 0);
         
         // Daily average
-        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
         const todayDate = new Date().getDate();
         const dailyAvg = todayDate > 0 ? Math.round(expenseMonth / todayDate) : 0;
         
@@ -86,7 +85,9 @@ const Finance = {
                         <p style="font-size:26px;font-weight:900;letter-spacing:-0.03em;color:${saldo >= 0 ? 'var(--success)' : 'var(--danger)'};">
                             Rp ${Math.abs(saldo).toLocaleString('id-ID')}
                         </p>
-                        <p style="font-size:10px;color:var(--text-tertiary);">dari Rp ${budget.toLocaleString('id-ID')} budget</p>
+                        <p style="font-size:10px;color:var(--text-tertiary);">
+                            ${saldo >= 0 ? 'Surplus' : 'Defisit'} • Budget Rp ${budget.toLocaleString('id-ID')}
+                        </p>
                     </div>
                     <div style="width:90px;height:90px;position:relative;">
                         <canvas id="donut-chart" width="90" height="90"></canvas>
@@ -103,30 +104,26 @@ const Finance = {
                         <span style="font-size:10px;font-weight:700;color:${budgetUsage > 80 ? 'var(--danger)' : 'var(--accent-light)'};">Rp ${expenseMonth.toLocaleString('id-ID')}</span>
                     </div>
                     <div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
-                        <div style="width:${Math.min(budgetUsage, 100)}%;height:100%;background:${budgetUsage > 80 ? 'var(--gradient-danger)' : 'var(--gradient-1)'};border-radius:4px;transition:width 0.5s;"></div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;margin-top:4px;">
-                        <span style="font-size:9px;color:var(--text-tertiary);">0%</span>
-                        <span style="font-size:9px;color:var(--text-tertiary);">100%</span>
+                        <div style="width:${Math.min(budgetUsage, 100)}%;height:100%;background:${budgetUsage > 80 ? '#EF4444' : 'var(--gradient-1)'};border-radius:4px;transition:width 0.5s;"></div>
                     </div>
                 </div>
             </div>
             
             <!-- Quick Stats -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-                <div class="stat-card">
+                <div class="stat-card" onclick="document.querySelector('.finance-tab[data-tab=pemasukan]').click()" style="cursor:pointer;">
                     <i data-lucide="trending-up" width="20" height="20" style="color:#22C55E;margin-bottom:4px;"></i>
                     <div class="stat-value green">Rp ${App.formatAmount(incomeMonth)}</div>
                     <div class="stat-label">Pemasukan</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" onclick="document.querySelector('.finance-tab[data-tab=pengeluaran]').click()" style="cursor:pointer;">
                     <i data-lucide="trending-down" width="20" height="20" style="color:#EF4444;margin-bottom:4px;"></i>
                     <div class="stat-value red">Rp ${App.formatAmount(expenseMonth)}</div>
                     <div class="stat-label">Pengeluaran</div>
                 </div>
             </div>
             
-            <!-- Weekly + Category -->
+            <!-- Weekly Bars -->
             <div class="card glass" style="margin-bottom:12px;">
                 <h3 style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;">
                     <i data-lucide="calendar" width="14" height="14"></i> Pengeluaran Minggu Ini
@@ -152,28 +149,30 @@ const Finance = {
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         
-        let html = '';
-        const maxExpense = 10000; // Default max
-        
+        const weekExpenses = [];
         for (let i = 0; i < 7; i++) {
             const d = new Date(weekStart);
             d.setDate(d.getDate() + i);
             const dateStr = d.toISOString().split('T')[0];
-            const dayExpense = expenses.filter(e => e.date === dateStr).reduce((s, e) => s + e.amount, 0);
-            const height = maxExpense > 0 ? Math.max((dayExpense / maxExpense) * 40, 2) : 2;
-            const isToday = dateStr === new Date().toISOString().split('T')[0];
-            
-            html += `
+            weekExpenses.push(expenses.filter(e => e.date === dateStr).reduce((s, e) => s + e.amount, 0));
+        }
+        
+        const maxExp = Math.max(...weekExpenses, 10000);
+        const today = new Date().getDay();
+        
+        return weekExpenses.map((amount, i) => {
+            const height = Math.max((amount / maxExp) * 40, 2);
+            return `
                 <div style="flex:1;text-align:center;">
                     <div style="height:40px;display:flex;align-items:flex-end;justify-content:center;">
-                        <div style="width:100%;max-width:20px;height:${height}px;background:${isToday ? 'var(--accent)' : 'var(--bg-tertiary)'};border-radius:3px 3px 0 0;"></div>
+                        <div style="width:100%;max-width:22px;height:${height}px;
+                            background:${i === today ? 'var(--accent)' : 'rgba(239,68,68,0.5)'};
+                            border-radius:3px 3px 0 0;transition:height 0.3s;"></div>
                     </div>
                     <div style="font-size:8px;color:var(--text-tertiary);margin-top:3px;">${days[i]}</div>
                 </div>
             `;
-        }
-        
-        return html;
+        }).join('');
     },
     
     renderCategoryBreakdown(expenses, monthStart) {
@@ -181,7 +180,6 @@ const Finance = {
         const monthExpenses = expenses.filter(e => e.date >= monthStart);
         const totalExpense = monthExpenses.reduce((s, e) => s + e.amount, 0);
         
-        // Group by category
         const catTotals = {};
         monthExpenses.forEach(e => {
             catTotals[e.category] = (catTotals[e.category] || 0) + e.amount;
@@ -190,7 +188,7 @@ const Finance = {
         const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 5);
         
         if (sorted.length === 0) {
-            return '<p style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:10px;">Belum ada pengeluaran bulan ini</p>';
+            return '<p style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:10px;">Belum ada pengeluaran</p>';
         }
         
         const colors = ['#3B82F6', '#EF4444', '#F59E0B', '#22C55E', '#8B5CF6'];
@@ -207,7 +205,7 @@ const Finance = {
                     <div style="flex:1;">
                         <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
                             <span style="font-size:11px;font-weight:500;">${name}</span>
-                            <span style="font-size:10px;font-weight:600;">Rp ${App.formatAmount(amount)}</span>
+                            <span style="font-size:10px;font-weight:600;color:${colors[i]};">Rp ${App.formatAmount(amount)}</span>
                         </div>
                         <div style="height:4px;background:var(--bg-tertiary);border-radius:2px;">
                             <div style="width:${pct}%;height:100%;background:${colors[i]};border-radius:2px;"></div>
@@ -232,23 +230,25 @@ const Finance = {
             
             ctx.clearRect(0, 0, 90, 90);
             
-            // Background circle
+            // Background
             ctx.beginPath();
             ctx.arc(45, 45, 35, 0, 2 * Math.PI);
-            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim();
+            ctx.strokeStyle = '#333';
             ctx.lineWidth = 8;
             ctx.stroke();
             
-            // Progress arc
-            ctx.beginPath();
-            ctx.arc(45, 45, 35, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * pct));
-            const gradient = ctx.createLinearGradient(0, 0, 90, 90);
-            gradient.addColorStop(0, '#3B82F6');
-            gradient.addColorStop(1, '#8B5CF6');
-            ctx.strokeStyle = pct > 0.8 ? '#EF4444' : gradient;
-            ctx.lineWidth = 8;
-            ctx.lineCap = 'round';
-            ctx.stroke();
+            // Progress
+            if (pct > 0) {
+                ctx.beginPath();
+                ctx.arc(45, 45, 35, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * pct));
+                const gradient = ctx.createLinearGradient(0, 0, 90, 90);
+                gradient.addColorStop(0, '#3B82F6');
+                gradient.addColorStop(1, '#8B5CF6');
+                ctx.strokeStyle = pct > 0.8 ? '#EF4444' : gradient;
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
         }, 100);
     },
     
@@ -284,14 +284,14 @@ const Finance = {
     renderIncomeItem(income) {
         const dateStr = App.formatDate(income.date);
         return `
-            <div class="list-item" data-income-id="${income.id}">
+            <div class="list-item" data-income-id="${income.id}" style="cursor:pointer;">
                 <div style="font-size:22px;">💰</div>
                 <div class="list-info">
                     <div class="list-title">${this.escape(income.source || 'Pemasukan')}</div>
                     <div class="list-subtitle">${income.note ? this.escape(income.note) + ' • ' : ''}${dateStr}</div>
                 </div>
                 <div style="font-size:14px;font-weight:700;color:#22C55E;">+Rp ${income.amount.toLocaleString('id-ID')}</div>
-                <button class="list-delete income-delete">
+                <button class="list-delete income-delete-btn">
                     <i data-lucide="trash-2" width="14" height="14"></i>
                 </button>
             </div>
@@ -299,51 +299,75 @@ const Finance = {
     },
     
     bindPemasukanEvents() {
-        document.getElementById('btn-add-income')?.addEventListener('click', () => this.openIncomeModal());
+        document.getElementById('btn-add-income')?.addEventListener('click', () => {
+            const source = prompt('💰 Sumber pemasukan:');
+            if (!source || !source.trim()) return;
+            
+            const amountStr = prompt('💵 Jumlah (Rp):');
+            if (!amountStr) return;
+            const amount = parseInt(amountStr.replace(/\D/g, ''));
+            if (!amount || amount <= 0) return;
+            
+            const note = prompt('📝 Catatan (opsional):') || '';
+            const dateStr = prompt('📅 Tanggal (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!dateStr) return;
+            
+            // ⬇️ INI YANG PENTING: Pakai Storage.addIncome
+            if (Storage.addIncome) {
+                Storage.addIncome({
+                    source: source.trim(),
+                    amount: amount,
+                    note: note.trim(),
+                    date: dateStr
+                });
+            } else {
+                // Fallback manual
+                const incomes = Storage.getIncomes ? Storage.getIncomes() : [];
+                incomes.unshift({
+                    id: Date.now().toString(36),
+                    source: source.trim(),
+                    amount: amount,
+                    note: note.trim(),
+                    date: dateStr,
+                    createdAt: new Date().toISOString()
+                });
+                if (Storage.saveIncomes) Storage.saveIncomes(incomes);
+            }
+            
+            this.refresh();
+            App.toast('✅ Pemasukan dicatat!');
+        });
         
+        // Delete income
         document.querySelectorAll('#income-list .list-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                if (e.target.closest('.income-delete')) return;
-                this.openIncomeModal(item.dataset.incomeId);
-            });
-            
-            item.querySelector('.income-delete')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (confirm('Hapus?')) {
-                    const incomes = Storage.getIncomes ? Storage.getIncomes() : [];
-                    Storage.saveIncomes(incomes.filter(i => i.id !== item.dataset.incomeId));
+                if (e.target.closest('.income-delete-btn')) return;
+                // Edit — update amount
+                const id = item.dataset.incomeId;
+                const incomes = Storage.getIncomes ? Storage.getIncomes() : [];
+                const income = incomes.find(i => i.id === id);
+                if (!income) return;
+                
+                const newAmount = prompt('Update jumlah (Rp):', income.amount);
+                if (newAmount && !isNaN(parseInt(newAmount))) {
+                    if (Storage.updateIncome) {
+                        Storage.updateIncome(id, { amount: parseInt(newAmount) });
+                    }
                     this.refresh();
                 }
             });
-        });
-    },
-    
-    openIncomeModal(id = null) {
-        const source = prompt('Sumber pemasukan:', id ? (Storage.getIncomes?.().find(i => i.id === id)?.source || '') : '');
-        if (!source) return;
-        const amount = parseInt(prompt('Jumlah (Rp):', id ? (Storage.getIncomes?.().find(i => i.id === id)?.amount || '') : ''));
-        if (!amount || amount <= 0) return;
-        const note = prompt('Catatan:', id ? (Storage.getIncomes?.().find(i => i.id === id)?.note || '') : '') || '';
-        const date = prompt('Tanggal (YYYY-MM-DD):', id ? (Storage.getIncomes?.().find(i => i.id === id)?.date || '') : new Date().toISOString().split('T')[0]) || new Date().toISOString().split('T')[0];
-        
-        let incomes = Storage.getIncomes ? Storage.getIncomes() : [];
-        
-        if (id) {
-            const idx = incomes.findIndex(i => i.id === id);
-            if (idx !== -1) {
-                incomes[idx] = { ...incomes[idx], source, amount, note, date };
-            }
-        } else {
-            incomes.unshift({
-                id: Date.now().toString(36),
-                source, amount, note, date,
-                createdAt: new Date().toISOString()
+            
+            item.querySelector('.income-delete-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('Hapus pemasukan ini?')) {
+                    if (Storage.deleteIncome) {
+                        Storage.deleteIncome(item.dataset.incomeId);
+                    }
+                    this.refresh();
+                    App.toast('🗑️ Pemasukan dihapus');
+                }
             });
-        }
-        
-        Storage.saveIncomes(incomes);
-        this.refresh();
-        App.toast('✅ Pemasukan disimpan!');
+        });
     },
     
     // ==================== PENGELUARAN ====================
@@ -483,7 +507,7 @@ const Finance = {
         
         this.closeExpenseModal();
         this.refresh();
-        App.toast('✅ Pengeluaran disimpan!');
+        App.toast('✅ Tersimpan!');
     },
     
     deleteExpense() {
@@ -491,7 +515,6 @@ const Finance = {
             Storage.deleteExpense(this.editingExpenseId);
             this.closeExpenseModal();
             this.refresh();
-            App.toast('🗑️ Dihapus!');
         }
     },
     
