@@ -1,34 +1,56 @@
 // ============================================
-// app.js - Main Application Controller (FIXED)
+// app.js - Main Controller V3.0
+// Sidebar + Bottom Nav + 16 Pages
 // ============================================
 
 const App = {
-    currentTab: 'dashboard',
+    currentPage: 'dashboard',
+    sidebarOpen: false,
     
-    // PIN lock variables
+    // PIN variables
     pinInput: '',
     pinAttempts: 0,
     maxAttempts: 3,
     cooldownTimer: null,
     cooldownSeconds: 0,
     
-    // PIN modal variables
+    // PIN Modal variables
     modalPinInput: '',
     modalPinStep: 1,
     modalPinFirst: '',
     
-    // ========== INITIALIZATION ==========
+    // Page titles
+    pageTitles: {
+        dashboard: 'Dashboard',
+        habits: 'Habit Tracker',
+        tasks: 'Tugas',
+        finance: 'Keuangan',
+        goals: 'Life Goals',
+        schedule: 'Time Blocking',
+        focus: 'Pomodoro Focus',
+        journal: 'Jurnal Harian',
+        ideas: 'Catatan Ide',
+        books: 'Buku Dibaca',
+        learn: 'Wishlist Belajar',
+        mood: 'Mood Tracker',
+        achievements: 'Achievement',
+        reminders: 'Reminder',
+        stats: 'Statistik',
+        profile: 'Pengaturan'
+    },
+    
+    // ========== INIT ==========
     init() {
-        console.log('🚀 Hariku v2.0 starting...');
+        console.log('🚀 Hariku V3.0 starting...');
         
         // Load theme
         const darkMode = Storage.getSetting('darkMode', true);
         if (darkMode) {
             document.documentElement.setAttribute('data-theme', 'dark');
-            document.querySelector('meta[name="theme-color"]').content = '#09090d';
+            document.querySelector('meta[name="theme-color"]').content = '#121212';
         } else {
             document.documentElement.setAttribute('data-theme', 'light');
-            document.querySelector('meta[name="theme-color"]').content = '#f5f5f9';
+            document.querySelector('meta[name="theme-color"]').content = '#FAFAFA';
         }
         
         // Check PIN
@@ -38,98 +60,170 @@ const App = {
             this.showAppScreen();
         }
         
-        // Bind core events (hanya sekali)
+        // Bind events
+        this.bindSidebar();
         this.bindNavigation();
         this.bindThemeToggle();
         this.bindPinKeypad();
         this.bindModalPinKeypad();
         this.bindPinReset();
         
+        // Init Lucide icons
+        lucide.createIcons();
+        
         console.log('✅ App initialized');
+    },
+    
+    // ========== SIDEBAR ==========
+    bindSidebar() {
+        // Open sidebar
+        document.getElementById('btn-menu')?.addEventListener('click', () => {
+            this.openSidebar();
+        });
+        
+        // Close sidebar
+        document.getElementById('sidebar-close')?.addEventListener('click', () => {
+            this.closeSidebar();
+        });
+        
+        // Overlay click
+        document.getElementById('sidebar-overlay')?.addEventListener('click', () => {
+            this.closeSidebar();
+        });
+        
+        // Sidebar items
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = item.dataset.page;
+                if (page) {
+                    this.navigateTo(page);
+                    this.closeSidebar();
+                }
+            });
+        });
+        
+        // Swipe right to open (mobile)
+        let touchStartX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchEndX - touchStartX;
+            
+            if (diff > 80 && touchStartX < 30 && !this.sidebarOpen) {
+                this.openSidebar();
+            }
+            
+            if (diff < -80 && this.sidebarOpen) {
+                this.closeSidebar();
+            }
+        });
+    },
+    
+    openSidebar() {
+        this.sidebarOpen = true;
+        document.getElementById('sidebar').classList.add('active');
+        document.getElementById('sidebar-overlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    },
+    
+    closeSidebar() {
+        this.sidebarOpen = false;
+        document.getElementById('sidebar').classList.remove('active');
+        document.getElementById('sidebar-overlay').classList.remove('active');
+        document.body.style.overflow = '';
     },
     
     // ========== NAVIGATION ==========
     bindNavigation() {
+        // Bottom nav
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
-                const tab = item.dataset.tab;
-                this.switchTab(tab);
+                const page = item.dataset.page;
+                if (page) {
+                    this.navigateTo(page);
+                }
             });
         });
     },
     
-    switchTab(tab) {
-        // ⬅️ GUARD: Jangan render ulang tab yang sama
-        if (this.currentTab === tab) return;
+    navigateTo(page) {
+        if (this.currentPage === page) return;
+        this.currentPage = page;
         
-        this.currentTab = tab;
-        
-        // Update nav active state
-        document.querySelectorAll('.nav-item').forEach(i => {
-            i.classList.toggle('active', i.dataset.tab === tab);
+        // Update sidebar active
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.page === page);
         });
         
-        // Update header title
-        const titles = {
-            dashboard: 'Hariku',
-            tasks: 'Tugas',
-            finance: 'Keuangan',
-            profile: 'Profil'
-        };
-        document.getElementById('app-title').textContent = titles[tab] || 'Hariku';
+        // Update bottom nav active
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.page === page);
+        });
         
-        // Hapus konten lama (biar event listener ikut hilang)
+        // Update title
+        document.getElementById('app-title').textContent = this.pageTitles[page] || 'Hariku';
+        
+        // Render page
         const container = document.getElementById('app-content');
         if (!container) return;
         container.innerHTML = '';
         
-        // Render konten baru
-        switch(tab) {
-            case 'dashboard':
-                Dashboard.render(container);
-                break;
-            case 'tasks':
-                Tasks.render(container);
-                break;
-            case 'finance':
-                Finance.render(container);
-                break;
-            case 'profile':
-                Profile.render(container);
-                break;
-        }
+        this.renderPage(page, container);
         
-        // Show/hide FAB
-        const fab = document.getElementById('btn-add-expense');
-        if (fab) {
-            fab.style.display = tab === 'finance' ? 'flex' : 'none';
+        // Re-init Lucide icons
+        setTimeout(() => lucide.createIcons(), 100);
+        
+        // Scroll to top
+        container.scrollTop = 0;
+    },
+    
+    renderPage(page, container) {
+        switch(page) {
+            case 'dashboard': Dashboard.render(container); break;
+            case 'habits': Habits.render(container); break;
+            case 'tasks': Tasks.render(container); break;
+            case 'finance': Finance.render(container); break;
+            case 'goals': Goals.render(container); break;
+            case 'schedule': Schedule.render(container); break;
+            case 'focus': Focus.render(container); break;
+            case 'journal': Journal.render(container); break;
+            case 'ideas': Ideas.render(container); break;
+            case 'books': Books.render(container); break;
+            case 'learn': Learn.render(container); break;
+            case 'mood': Mood.render(container); break;
+            case 'achievements': Achievements.render(container); break;
+            case 'reminders': Reminders.render(container); break;
+            case 'stats': Stats.render(container); break;
+            case 'profile': Profile.render(container); break;
+            default: Dashboard.render(container);
         }
     },
     
     refreshAll() {
-        // Reset currentTab biar switchTab bisa jalan
-        const current = this.currentTab;
-        this.currentTab = '';
-        this.switchTab(current);
+        const current = this.currentPage;
+        this.currentPage = '';
+        this.navigateTo(current);
     },
     
     // ========== THEME ==========
     bindThemeToggle() {
-        const themeBtn = document.getElementById('btn-theme');
-        if (themeBtn) {
-            themeBtn.addEventListener('click', () => {
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                if (isDark) {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                    document.querySelector('meta[name="theme-color"]').content = '#f5f5f9';
-                    Storage.saveSetting('darkMode', false);
-                } else {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    document.querySelector('meta[name="theme-color"]').content = '#09090d';
-                    Storage.saveSetting('darkMode', true);
-                }
-            });
-        }
+        document.getElementById('btn-theme')?.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.querySelector('meta[name="theme-color"]').content = '#FAFAFA';
+                Storage.saveSetting('darkMode', false);
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.querySelector('meta[name="theme-color"]').content = '#121212';
+                Storage.saveSetting('darkMode', true);
+            }
+            lucide.createIcons();
+        });
     },
     
     // ========== PIN SCREEN ==========
@@ -149,11 +243,11 @@ const App = {
     
     showAppScreen() {
         document.getElementById('pin-screen').style.display = 'none';
-        document.getElementById('pin-screen').classList.remove('active');
         document.getElementById('app-screen').style.display = 'flex';
         document.getElementById('app-screen').classList.add('active');
         
-        this.switchTab('dashboard');
+        this.navigateTo('dashboard');
+        lucide.createIcons();
     },
     
     updatePinGreeting() {
@@ -163,7 +257,7 @@ const App = {
         if (profile.photo) {
             avatar.innerHTML = `<img src="${profile.photo}" alt="Foto">`;
         } else if (profile.name) {
-            avatar.innerHTML = `<span id="pin-avatar-emoji">${profile.name.charAt(0).toUpperCase()}</span>`;
+            avatar.innerHTML = `<span>${profile.name.charAt(0).toUpperCase()}</span>`;
         }
         
         if (profile.name) {
@@ -178,9 +272,7 @@ const App = {
                 
                 const key = btn.dataset.key;
                 if (key === 'delete') {
-                    if (this.pinInput.length > 0) {
-                        this.pinInput = this.pinInput.slice(0, -1);
-                    }
+                    if (this.pinInput.length > 0) this.pinInput = this.pinInput.slice(0, -1);
                 } else if (this.pinInput.length < 6) {
                     this.pinInput += key;
                 }
@@ -223,7 +315,7 @@ const App = {
     
     startCooldown() {
         this.cooldownSeconds = 30;
-        document.getElementById('pin-cooldown').textContent = 'Terlalu banyak percobaan. Tunggu 30 detik';
+        document.getElementById('pin-cooldown').textContent = 'Tunggu 30 detik...';
         document.getElementById('pin-error').textContent = '';
         
         document.querySelectorAll('#pin-screen .keypad-btn[data-key]').forEach(b => {
@@ -234,7 +326,6 @@ const App = {
         clearInterval(this.cooldownTimer);
         this.cooldownTimer = setInterval(() => {
             this.cooldownSeconds--;
-            
             if (this.cooldownSeconds <= 0) {
                 clearInterval(this.cooldownTimer);
                 this.pinAttempts = 0;
@@ -244,8 +335,7 @@ const App = {
                     b.style.pointerEvents = 'auto';
                 });
             } else {
-                document.getElementById('pin-cooldown').textContent = 
-                    'Terlalu banyak percobaan. Tunggu ' + this.cooldownSeconds + ' detik';
+                document.getElementById('pin-cooldown').textContent = 'Tunggu ' + this.cooldownSeconds + ' detik...';
             }
         }, 1000);
     },
@@ -263,14 +353,10 @@ const App = {
         this.modalPinInput = '';
         this.updatePinDots('pin-dots-modal', '');
         
-        document.getElementById('modal-pin-title').innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:6px;">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>Atur PIN`;
-        document.getElementById('modal-pin-desc').textContent = 'Buat PIN 6 digit untuk keamanan';
+        document.getElementById('modal-pin-desc').textContent = 'Buat PIN 6 digit';
         document.getElementById('pin-modal-error').textContent = '';
         document.getElementById('modal-pin-setup').classList.add('active');
+        lucide.createIcons();
     },
     
     bindModalPinKeypad() {
@@ -279,9 +365,7 @@ const App = {
                 const key = btn.dataset.key;
                 
                 if (key === 'delete') {
-                    if (this.modalPinInput.length > 0) {
-                        this.modalPinInput = this.modalPinInput.slice(0, -1);
-                    }
+                    if (this.modalPinInput.length > 0) this.modalPinInput = this.modalPinInput.slice(0, -1);
                 } else if (this.modalPinInput.length < 6) {
                     this.modalPinInput += key;
                 }
@@ -305,28 +389,20 @@ const App = {
             this.modalPinInput = '';
             this.modalPinStep = 2;
             this.updatePinDots('pin-dots-modal', '');
-            
-            document.getElementById('modal-pin-title').textContent = 'Konfirmasi PIN';
-            document.getElementById('modal-pin-desc').textContent = 'Masukkan lagi PIN yang sama';
+            document.getElementById('modal-pin-desc').textContent = 'Konfirmasi PIN';
         } else {
             if (this.modalPinInput === this.modalPinFirst) {
-                const hash = this.hashPin(this.modalPinInput);
-                Storage.savePINHash(hash);
+                Storage.savePINHash(this.hashPin(this.modalPinInput));
                 this.closePinSetupModal();
                 this.toast('✅ PIN berhasil disimpan!');
-                
-                if (this.currentTab === 'profile') {
-                    Profile.refresh();
-                }
+                if (this.currentPage === 'profile') Profile.refresh();
             } else {
-                document.getElementById('pin-modal-error').textContent = 'PIN tidak cocok! Coba lagi.';
+                document.getElementById('pin-modal-error').textContent = 'PIN tidak cocok!';
                 this.modalPinStep = 1;
                 this.modalPinFirst = '';
                 this.modalPinInput = '';
                 this.updatePinDots('pin-dots-modal', '');
-                
-                document.getElementById('modal-pin-title').textContent = 'Atur PIN';
-                document.getElementById('modal-pin-desc').textContent = 'Buat PIN 6 digit untuk keamanan';
+                document.getElementById('modal-pin-desc').textContent = 'Buat PIN 6 digit';
             }
         }
     },
@@ -341,17 +417,14 @@ const App = {
     // ========== HELPERS ==========
     updatePinDots(dotsId, input) {
         const dots = document.querySelectorAll('#' + dotsId + ' .dot');
-        dots.forEach((dot, i) => {
-            dot.classList.toggle('filled', i < input.length);
-        });
+        dots.forEach((dot, i) => dot.classList.toggle('filled', i < input.length));
     },
     
     hashPin(pin) {
         let hash = 0;
-        const str = pin + 'hariku-salt-v2-2024';
+        const str = pin + 'hariku-salt-v3';
         for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
             hash = hash & hash;
         }
         return Math.abs(hash).toString(16);
@@ -360,27 +433,41 @@ const App = {
     toast(message) {
         const toast = document.getElementById('toast');
         if (!toast) return;
-        
         toast.textContent = message;
         toast.classList.add('show');
-        
         clearTimeout(this._toastTimer);
-        this._toastTimer = setTimeout(() => {
-            toast.classList.remove('show');
-        }, 2200);
+        this._toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+    },
+    
+    formatAmount(amount) {
+        if (amount >= 1000000) return (amount / 1000000).toFixed(1) + 'M';
+        if (amount >= 1000) return (amount / 1000).toFixed(0) + 'K';
+        return amount.toString();
+    },
+    
+    formatDate(dateStr) {
+        const d = new Date(dateStr);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        if (dateStr === today.toISOString().split('T')[0]) return 'Hari ini';
+        if (dateStr === yesterday.toISOString().split('T')[0]) return 'Kemarin';
+        if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Besok';
+        
+        return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
     }
 };
 
-// ========== START APPLICATION ==========
-document.addEventListener('DOMContentLoaded', () => {
-    App.init();
-});
+// ========== START ==========
+document.addEventListener('DOMContentLoaded', () => App.init());
 
-// ========== HANDLE BACK BUTTON ==========
-window.addEventListener('popstate', (e) => {
-    if (Storage.hasPin && Storage.hasPin() && document.getElementById('pin-screen').style.display === 'flex') {
+// Handle back button
+window.addEventListener('popstate', () => {
+    if (Storage.hasPin() && document.getElementById('pin-screen').style.display === 'flex') {
         history.pushState(null, '', window.location.href);
     }
 });
-
 history.pushState(null, '', window.location.href);
