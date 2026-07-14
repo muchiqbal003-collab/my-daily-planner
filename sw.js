@@ -3,7 +3,7 @@
 // Auto-update cache, offline support
 // ============================================
 
-const CACHE_NAME = 'hariku-v4-' + Date.now();
+const CACHE_NAME = 'hariku-v5-' + Date.now();
 const BASE_PATH = '/my-daily-planner';
 
 // Semua file yang di-cache
