@@ -1,12 +1,10 @@
 // ============================================
-// Service Worker - Hariku V3.0
-// Auto-update cache, offline support
+// Service Worker - Hariku V5
 // ============================================
 
-const CACHE_NAME = 'hariku-v6-' + Date.now();
+const CACHE_NAME = 'hariku-v5';
 const BASE_PATH = '/my-daily-planner';
 
-// Semua file yang di-cache
 const ASSETS_TO_CACHE = [
     BASE_PATH + '/',
     BASE_PATH + '/index.html',
@@ -15,11 +13,11 @@ const ASSETS_TO_CACHE = [
     BASE_PATH + '/js/app.js',
     BASE_PATH + '/js/dashboard.js',
     BASE_PATH + '/js/tasks.js',
-    BASE_PATH + '/js/finance.js',
     BASE_PATH + '/js/habits.js',
+    BASE_PATH + '/js/finance.js',
+    BASE_PATH + '/js/invest.js',
     BASE_PATH + '/js/goals.js',
     BASE_PATH + '/js/schedule.js',
-    BASE_PATH + '/js/focus.js',
     BASE_PATH + '/js/journal.js',
     BASE_PATH + '/js/ideas.js',
     BASE_PATH + '/js/books.js',
@@ -35,9 +33,9 @@ const ASSETS_TO_CACHE = [
     BASE_PATH + '/icons/icon-512.png'
 ];
 
-// ========== INSTALL ==========
+// Install
 self.addEventListener('install', (event) => {
-    console.log('🔧 SW V3.0: Installing...');
+    console.log('🔧 SW V5: Installing...');
     
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -48,45 +46,42 @@ self.addEventListener('install', (event) => {
                 });
             })
             .then(() => {
-                console.log('✅ SW V3.0: Install complete');
+                console.log('✅ SW V5: Install complete');
                 return self.skipWaiting();
             })
     );
 });
 
-// ========== ACTIVATE ==========
+// Activate — HAPUS SEMUA CACHE LAMA
 self.addEventListener('activate', (event) => {
-    console.log('🚀 SW V3.0: Activating...');
+    console.log('🚀 SW V5: Activating...');
     
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
-                cacheNames
-                    .filter((name) => name !== CACHE_NAME)
-                    .map((name) => {
+                cacheNames.map((name) => {
+                    if (name !== CACHE_NAME) {
                         console.log('🗑️ Deleting old cache:', name);
                         return caches.delete(name);
-                    })
+                    }
+                })
             );
         }).then(() => {
-            console.log('✅ SW V3.0: Activated');
+            console.log('✅ SW V5: Activated');
             return self.clients.claim();
         })
     );
 });
 
-// ========== FETCH ==========
+// Fetch — Network first, cache fallback
 self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests
     if (event.request.method !== 'GET') return;
     
-    // Skip external requests (CDN, Google Fonts, etc)
     const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return;
     
     event.respondWith(
         caches.match(event.request).then((cached) => {
-            // Return cached immediately, fetch update in background
             const fetchPromise = fetch(event.request)
                 .then((response) => {
                     if (response && response.status === 200) {
@@ -97,17 +92,14 @@ self.addEventListener('fetch', (event) => {
                     }
                     return response;
                 })
-                .catch((err) => {
-                    console.log('🌐 Offline, using cache:', event.request.url);
-                    return cached;
-                });
+                .catch(() => cached);
             
             return cached || fetchPromise;
         })
     );
 });
 
-// ========== MESSAGE HANDLER ==========
+// Message handler
 self.addEventListener('message', (event) => {
     if (event.data === 'skipWaiting') {
         self.skipWaiting();
