@@ -1,6 +1,6 @@
 // ============================================
-// finance.js - Keuangan V4.0
-// Ringkasan + Pemasukan + Pengeluaran (Dashboard Analytic)
+// finance.js - Keuangan V5.0
+// Budget Custom + Laporan Bulanan
 // ============================================
 
 const Finance = {
@@ -29,12 +29,18 @@ const Finance = {
                         ${this.activeTab === 'pengeluaran' ? 'background:var(--bg-secondary);color:var(--text-primary);box-shadow:var(--shadow-sm);' : 'background:transparent;color:var(--text-tertiary);'}">
                         <i data-lucide="trending-down" width="14" height="14"></i> Pengeluaran
                     </button>
+                    <button class="finance-tab ${this.activeTab === 'laporan' ? 'active' : ''}" data-tab="laporan"
+                        style="flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:12px;font-family:'Inter',sans-serif;
+                        ${this.activeTab === 'laporan' ? 'background:var(--bg-secondary);color:var(--text-primary);box-shadow:var(--shadow-sm);' : 'background:transparent;color:var(--text-tertiary);'}">
+                        <i data-lucide="file-text" width="14" height="14"></i> Laporan
+                    </button>
                 </div>
                 
                 <div id="finance-content">
                     ${this.activeTab === 'ringkasan' ? this.renderRingkasan() : ''}
                     ${this.activeTab === 'pemasukan' ? this.renderPemasukan() : ''}
                     ${this.activeTab === 'pengeluaran' ? this.renderPengeluaran() : ''}
+                    ${this.activeTab === 'laporan' ? this.renderLaporan() : ''}
                 </div>
                 
             </div>
@@ -62,6 +68,7 @@ const Finance = {
         const expenseMonth = expenses.filter(e => e.date >= monthStart).reduce((s, e) => s + e.amount, 0);
         const saldo = incomeMonth - expenseMonth;
         
+        // Budget — bisa diatur
         const budget = Storage.getSetting('monthlyBudget', incomeMonth || 5000000);
         const budgetUsage = budget > 0 ? Math.round((expenseMonth / budget) * 100) : 0;
         
@@ -84,7 +91,7 @@ const Finance = {
                             Rp ${Math.abs(saldo).toLocaleString('id-ID')}
                         </p>
                         <p style="font-size:10px;color:var(--text-tertiary);">
-                            Total pemasukan: Rp ${incomeMonth.toLocaleString('id-ID')}
+                            ${saldo >= 0 ? 'Surplus' : 'Defisit'} • Total pemasukan: Rp ${incomeMonth.toLocaleString('id-ID')}
                         </p>
                     </div>
                     <div style="width:90px;height:90px;position:relative;">
@@ -98,12 +105,20 @@ const Finance = {
                 <!-- Progress Bar -->
                 <div style="margin-top:14px;">
                     <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                        <span style="font-size:10px;color:var(--text-tertiary);">Pengeluaran</span>
+                        <span style="font-size:10px;color:var(--text-tertiary);">Budget terpakai</span>
                         <span style="font-size:10px;font-weight:700;">Rp ${expenseMonth.toLocaleString('id-ID')} / Rp ${budget.toLocaleString('id-ID')}</span>
                     </div>
                     <div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">
                         <div style="width:${Math.min(budgetUsage, 100)}%;height:100%;background:${budgetUsage > 80 ? '#EF4444' : 'var(--gradient-1)'};border-radius:4px;transition:width 0.5s;"></div>
                     </div>
+                </div>
+                
+                <!-- Budget Setting -->
+                <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+                    <button class="btn btn-secondary" id="btn-set-budget" style="flex:1;font-size:11px;padding:8px;">
+                        <i data-lucide="settings" width="14" height="14"></i> Atur Budget
+                    </button>
+                    <span style="font-size:10px;color:var(--text-tertiary);">Reset tiap bulan</span>
                 </div>
             </div>
             
@@ -160,9 +175,119 @@ const Finance = {
                 </h3>
                 ${this.renderCategoryBreakdown(expenses, monthStart)}
             </div>
+            
+            <!-- Budget Setting Handler -->
+            <script style="display:none;">
+                document.getElementById('btn-set-budget')?.addEventListener('click', () => {
+                    const newBudget = prompt('💰 Atur budget bulanan (Rp):', '${budget}');
+                    if (newBudget) {
+                        const amount = parseInt(newBudget.replace(/\\D/g, ''));
+                        if (amount && amount > 0) {
+                            Storage.saveSetting('monthlyBudget', amount);
+                            App.toast('✅ Budget diatur ke Rp ' + amount.toLocaleString('id-ID'));
+                            Finance.refresh();
+                        }
+                    }
+                });
+            </script>
         `;
     },
     
+    // ==================== LAPORAN ====================
+    renderLaporan() {
+        const expenses = Storage.getExpenses();
+        const incomes = Storage.getIncomes ? Storage.getIncomes() : [];
+        
+        // Generate 6 bulan terakhir
+        const monthlyReports = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
+            const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            
+            const monthExpenses = expenses.filter(e => e.date >= monthStart && e.date <= monthEnd);
+            const monthIncomes = incomes.filter(inc => inc.date >= monthStart && inc.date <= monthEnd);
+            
+            monthlyReports.push({
+                label: d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
+                expense: monthExpenses.reduce((s, e) => s + e.amount, 0),
+                income: monthIncomes.reduce((s, inc) => s + inc.amount, 0),
+                count: monthExpenses.length + monthIncomes.length,
+                saldo: monthIncomes.reduce((s, inc) => s + inc.amount, 0) - monthExpenses.reduce((s, e) => s + e.amount, 0)
+            });
+        }
+        
+        const maxVal = Math.max(...monthlyReports.map(r => Math.max(r.expense, r.income)), 10000);
+        
+        return `
+            <div style="padding:4px 0;">
+                <div class="section-header">
+                    <h2><i data-lucide="file-text" width="18" height="18"></i> Laporan Bulanan</h2>
+                    <span class="badge">6 Bulan</span>
+                </div>
+                
+                <!-- Monthly Chart -->
+                <div class="card glass" style="padding:16px;margin-bottom:14px;">
+                    <h3 style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:14px;">
+                        <i data-lucide="bar-chart-2" width="14" height="14"></i> Tren Keuangan
+                    </h3>
+                    <div style="display:flex;align-items:flex-end;gap:6px;height:120px;">
+                        ${monthlyReports.map(r => {
+                            const expenseH = (r.expense / maxVal) * 100;
+                            const incomeH = (r.income / maxVal) * 100;
+                            return `
+                                <div style="flex:1;text-align:center;">
+                                    <div style="height:100px;display:flex;flex-direction:column-reverse;gap:2px;">
+                                        <div style="width:100%;height:${expenseH}px;background:#EF4444;border-radius:3px 3px 0 0;transition:height 0.3s;opacity:0.8;"></div>
+                                        <div style="width:100%;height:${incomeH}px;background:#22C55E;border-radius:3px 3px 0 0;transition:height 0.3s;opacity:0.8;"></div>
+                                    </div>
+                                    <div style="font-size:8px;color:var(--text-tertiary);margin-top:4px;">${r.label}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:8px;font-size:9px;">
+                        <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#EF4444;border-radius:2px;"></span> Pengeluaran</span>
+                        <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#22C55E;border-radius:2px;"></span> Pemasukan</span>
+                    </div>
+                </div>
+                
+                <!-- Monthly Detail List -->
+                ${monthlyReports.reverse().map(r => `
+                    <div class="card glass" style="padding:14px;margin-bottom:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <span style="font-weight:700;font-size:14px;">${r.label}</span>
+                            <span style="font-size:14px;font-weight:800;color:${r.saldo >= 0 ? '#22C55E' : '#EF4444'};">
+                                ${r.saldo >= 0 ? '+' : ''}Rp ${App.formatAmount(Math.abs(r.saldo))}
+                            </span>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <div style="flex:1;text-align:center;">
+                                <div style="font-size:10px;color:var(--text-tertiary);">Pemasukan</div>
+                                <div style="font-weight:700;font-size:13px;color:#22C55E;">Rp ${App.formatAmount(r.income)}</div>
+                            </div>
+                            <div style="width:1px;background:var(--border);"></div>
+                            <div style="flex:1;text-align:center;">
+                                <div style="font-size:10px;color:var(--text-tertiary);">Pengeluaran</div>
+                                <div style="font-weight:700;font-size:13px;color:#EF4444;">Rp ${App.formatAmount(r.expense)}</div>
+                            </div>
+                            <div style="width:1px;background:var(--border);"></div>
+                            <div style="flex:1;text-align:center;">
+                                <div style="font-size:10px;color:var(--text-tertiary);">Transaksi</div>
+                                <div style="font-weight:700;font-size:13px;">${r.count}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+                
+            </div>
+        `;
+    },
+    
+    // ==================== HELPERS ====================
     renderWeeklyChart(expenses, incomes) {
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -184,7 +309,6 @@ const Finance = {
         return weekData.map((d, i) => {
             const expenseH = (d.expense / maxVal) * 80;
             const incomeH = (d.income / maxVal) * 80;
-            const totalH = Math.max(expenseH + incomeH, 2);
             
             return `
                 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
@@ -249,19 +373,17 @@ const Finance = {
             const expenseMonth = expenses.reduce((s, e) => s + e.amount, 0);
             const incomes = Storage.getIncomes ? Storage.getIncomes() : [];
             const incomeMonth = incomes.filter(i => i.date >= monthStart).reduce((s, i) => s + i.amount, 0);
-            const budget = incomeMonth || Storage.getSetting('monthlyBudget', 5000000);
+            const budget = Storage.getSetting('monthlyBudget', incomeMonth || 5000000);
             const pct = budget > 0 ? Math.min(expenseMonth / budget, 1) : 0;
             
             ctx.clearRect(0, 0, 90, 90);
             
-            // Background circle
             ctx.beginPath();
             ctx.arc(45, 45, 35, 0, 2 * Math.PI);
             ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim();
             ctx.lineWidth = 8;
             ctx.stroke();
             
-            // Progress arc
             if (pct > 0) {
                 ctx.beginPath();
                 ctx.arc(45, 45, 35, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * pct));
@@ -276,7 +398,7 @@ const Finance = {
         }, 100);
     },
     
-    // ==================== PEMASUKAN ====================
+    // ==================== PEMASUKAN (sama seperti sebelumnya) ====================
     renderPemasukan() {
         const incomes = Storage.getIncomes ? Storage.getIncomes() : [];
         const sorted = [...incomes].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -362,27 +484,13 @@ const Finance = {
         const dateStr = prompt('📅 Tanggal (YYYY-MM-DD):', existing?.date || new Date().toISOString().split('T')[0]);
         if (!dateStr) return;
         
-        const data = {
-            source: source.trim(),
-            amount: amount,
-            note: note.trim(),
-            date: dateStr
-        };
+        const data = { source: source.trim(), amount, note: note.trim(), date: dateStr };
         
         if (id && Storage.updateIncome) {
             Storage.updateIncome(id, data);
             App.toast('✅ Pemasukan diupdate!');
         } else if (Storage.addIncome) {
             Storage.addIncome(data);
-            App.toast('✅ Pemasukan dicatat!');
-        } else {
-            // Fallback
-            incomes.unshift({
-                id: Date.now().toString(36),
-                ...data,
-                createdAt: new Date().toISOString()
-            });
-            if (Storage.saveIncomes) Storage.saveIncomes(incomes);
             App.toast('✅ Pemasukan dicatat!');
         }
         
@@ -549,6 +657,22 @@ const Finance = {
                 this.refresh();
             });
         });
+        
+        // Budget setting button (bind after render)
+        setTimeout(() => {
+            document.getElementById('btn-set-budget')?.addEventListener('click', () => {
+                const currentBudget = Storage.getSetting('monthlyBudget', 5000000);
+                const newBudget = prompt('💰 Atur budget bulanan (Rp):', currentBudget);
+                if (newBudget) {
+                    const amount = parseInt(newBudget.replace(/\D/g, ''));
+                    if (amount && amount > 0) {
+                        Storage.saveSetting('monthlyBudget', amount);
+                        App.toast('✅ Budget diatur ke Rp ' + amount.toLocaleString('id-ID'));
+                        this.refresh();
+                    }
+                }
+            });
+        }, 200);
     },
     
     refresh() {
