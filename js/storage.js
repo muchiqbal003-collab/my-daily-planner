@@ -198,47 +198,122 @@ const Storage = {
     deleteIncome(id) { this.saveIncomes(this.getIncomes().filter(i => i.id !== id)); },
     
     // ========== INVESTMENTS ==========
-    getInvestments() { return this.load('investments', []); },
-    saveInvestments(investments) { return this.save('investments', investments); },
+    // ========== INVESTMENTS (Transactions + Targets) ==========
+
+// Transaksi
+getTransactions() { return this.load('transactions', []); },
+saveTransactions(transactions) { return this.save('transactions', transactions); },
+
+addTransaction(transaction) {
+    const transactions = this.getTransactions();
+    transaction.id = this.generateId();
+    transaction.createdAt = new Date().toISOString();
+    transactions.unshift(transaction);
+    this.saveTransactions(transactions);
+    return transaction;
+},
+updateTransaction(id, updates) {
+    const transactions = this.getTransactions();
+    const idx = transactions.findIndex(t => t.id === id);
+    if (idx !== -1) {
+        transactions[idx] = { ...transactions[idx], ...updates };
+        this.saveTransactions(transactions);
+        return transactions[idx];
+    }
+    return null;
+},
+deleteTransaction(id) {
+    this.saveTransactions(this.getTransactions().filter(t => t.id !== id));
+},
+
+// Target
+getTargets() { return this.load('targets', []); },
+saveTargets(targets) { return this.save('targets', targets); },
+
+addTarget(target) {
+    const targets = this.getTargets();
+    target.id = this.generateId();
+    target.createdAt = new Date().toISOString();
+    targets.push(target);
+    this.saveTargets(targets);
+    return target;
+},
+updateTarget(id, updates) {
+    const targets = this.getTargets();
+    const idx = targets.findIndex(t => t.id === id);
+    if (idx !== -1) {
+        targets[idx] = { ...targets[idx], ...updates };
+        this.saveTargets(targets);
+        return targets[idx];
+    }
+    return null;
+},
+deleteTarget(id) { this.saveTargets(this.getTargets().filter(t => t.id !== id)); },
+
+// Get target progress (dari transaksi yang di-assign)
+getTargetProgress(targetId) {
+    const transactions = this.getTransactions();
+    return transactions
+        .filter(t => t.targetId === targetId)
+        .reduce((sum, t) => sum + t.amount, 0);
+},
+
+// Total portfolio
+getTotalPortfolio() {
+    const transactions = this.getTransactions();
+    return transactions.reduce((sum, t) => sum + t.amount, 0);
+},
+
+// Get portfolio by category
+getPortfolioByCategory() {
+    const transactions = this.getTransactions();
+    const cats = {};
+    transactions.forEach(t => {
+        const cat = t.category || 'Lainnya';
+        cats[cat] = (cats[cat] || 0) + t.amount;
+    });
+    return cats;
+},
+
+// Get monthly data for chart
+getMonthlyTransactions(months = 6) {
+    const transactions = this.getTransactions();
+    const result = [];
     
-    addInvestment(investment) {
-        const investments = this.getInvestments();
-        investment.id = this.generateId();
-        investment.createdAt = new Date().toISOString();
-        investment.history = [{ date: new Date().toISOString().split('T')[0], value: investment.currentValue || investment.amount }];
-        investments.push(investment);
-        this.saveInvestments(investments);
-        return investment;
-    },
-    updateInvestment(id, updates) {
-        const investments = this.getInvestments();
-        const idx = investments.findIndex(inv => inv.id === id);
-        if (idx !== -1) {
-            investments[idx] = { ...investments[idx], ...updates };
-            // Add to history if value changed
-            if (updates.currentValue && updates.currentValue !== investments[idx].currentValue) {
-                if (!investments[idx].history) investments[idx].history = [];
-                investments[idx].history.push({
-                    date: new Date().toISOString().split('T')[0],
-                    value: updates.currentValue
-                });
-            }
-            this.saveInvestments(investments);
-            return investments[idx];
-        }
-        return null;
-    },
-    deleteInvestment(id) { this.saveInvestments(this.getInvestments().filter(inv => inv.id !== id)); },
-    
-    getTotalInvestment() {
-        const investments = this.getInvestments();
-        const totalInvested = investments.reduce((s, inv) => s + (inv.amount || 0), 0);
-        const totalCurrent = investments.reduce((s, inv) => s + (inv.currentValue || inv.amount || 0), 0);
-        const profit = totalCurrent - totalInvested;
-        const profitPct = totalInvested > 0 ? ((profit / totalInvested) * 100) : 0;
+    for (let i = months - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
+        const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
         
-        return { totalInvested, totalCurrent, profit, profitPct };
-    },
+        const monthTransactions = transactions.filter(t => t.date >= monthStart && t.date <= monthEnd);
+        
+        result.push({
+            label: d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
+            total: monthTransactions.reduce((s, t) => s + t.amount, 0),
+            count: monthTransactions.length
+        });
+    }
+    
+    return result;
+},
+
+// Kategori default untuk investasi
+getInvestCategories() {
+    return this.load('investCategories', [
+        { id: 'reksadana', name: 'Reksadana', icon: '📊', color: '#3B82F6' },
+        { id: 'saham', name: 'Saham', icon: '📈', color: '#22C55E' },
+        { id: 'emas', name: 'Emas', icon: '🟡', color: '#F59E0B' },
+        { id: 'crypto', name: 'Crypto', icon: '₿', color: '#8B5CF6' },
+        { id: 'p2p', name: 'P2P Lending', icon: '🤝', color: '#EC4899' },
+        { id: 'deposito', name: 'Deposito', icon: '🏦', color: '#06B6D4' },
+        { id: 'properti', name: 'Properti', icon: '🏠', color: '#F97316' },
+        { id: 'lainnya', name: 'Lainnya', icon: '💰', color: '#6B7280' }
+    ]);
+},
+saveInvestCategories(cats) { return this.save('investCategories', cats); },
     
     // ========== LIFE GOALS ==========
     getGoals() { return this.load('goals', []); },
