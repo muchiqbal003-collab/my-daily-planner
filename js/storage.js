@@ -1,5 +1,5 @@
 // ============================================
-// storage.js - All Data Handler (V3.0)
+// storage.js - All Data Handler (V3.1)
 // ============================================
 
 const Storage = {
@@ -197,6 +197,49 @@ const Storage = {
     },
     deleteIncome(id) { this.saveIncomes(this.getIncomes().filter(i => i.id !== id)); },
     
+    // ========== INVESTMENTS ==========
+    getInvestments() { return this.load('investments', []); },
+    saveInvestments(investments) { return this.save('investments', investments); },
+    
+    addInvestment(investment) {
+        const investments = this.getInvestments();
+        investment.id = this.generateId();
+        investment.createdAt = new Date().toISOString();
+        investment.history = [{ date: new Date().toISOString().split('T')[0], value: investment.currentValue || investment.amount }];
+        investments.push(investment);
+        this.saveInvestments(investments);
+        return investment;
+    },
+    updateInvestment(id, updates) {
+        const investments = this.getInvestments();
+        const idx = investments.findIndex(inv => inv.id === id);
+        if (idx !== -1) {
+            investments[idx] = { ...investments[idx], ...updates };
+            // Add to history if value changed
+            if (updates.currentValue && updates.currentValue !== investments[idx].currentValue) {
+                if (!investments[idx].history) investments[idx].history = [];
+                investments[idx].history.push({
+                    date: new Date().toISOString().split('T')[0],
+                    value: updates.currentValue
+                });
+            }
+            this.saveInvestments(investments);
+            return investments[idx];
+        }
+        return null;
+    },
+    deleteInvestment(id) { this.saveInvestments(this.getInvestments().filter(inv => inv.id !== id)); },
+    
+    getTotalInvestment() {
+        const investments = this.getInvestments();
+        const totalInvested = investments.reduce((s, inv) => s + (inv.amount || 0), 0);
+        const totalCurrent = investments.reduce((s, inv) => s + (inv.currentValue || inv.amount || 0), 0);
+        const profit = totalCurrent - totalInvested;
+        const profitPct = totalInvested > 0 ? ((profit / totalInvested) * 100) : 0;
+        
+        return { totalInvested, totalCurrent, profit, profitPct };
+    },
+    
     // ========== LIFE GOALS ==========
     getGoals() { return this.load('goals', []); },
     saveGoals(goals) { return this.save('goals', goals); },
@@ -224,7 +267,7 @@ const Storage = {
     },
     deleteGoal(id) { this.saveGoals(this.getGoals().filter(g => g.id !== id)); },
     
-    // ========== SCHEDULE (Time Blocking) ==========
+    // ========== SCHEDULE (Jadwal Harian) ==========
     getSchedules() { return this.load('schedules', []); },
     saveSchedules(schedules) { return this.save('schedules', schedules); },
     
@@ -247,7 +290,7 @@ const Storage = {
     },
     deleteSchedule(id) { this.saveSchedules(this.getSchedules().filter(s => s.id !== id)); },
     
-    // ========== POMODORO FOCUS ==========
+    // ========== FOCUS (Pomodoro) ==========
     getFocusSessions() { return this.load('focus', []); },
     saveFocusSession(session) {
         const sessions = this.getFocusSessions();
@@ -433,11 +476,12 @@ const Storage = {
     // ========== BACKUP/RESTORE ==========
     exportAll() {
         return JSON.stringify({
-            version: '3.0',
+            version: '3.1',
             tasks: this.getTasks(),
             habits: this.getHabits(),
             expenses: this.getExpenses(),
             incomes: this.getIncomes(),
+            investments: this.getInvestments(),
             goals: this.getGoals(),
             schedules: this.getSchedules(),
             focus: this.getFocusSessions(),
@@ -462,6 +506,7 @@ const Storage = {
             if (data.habits) this.saveHabits(data.habits);
             if (data.expenses) this.saveExpenses(data.expenses);
             if (data.incomes) this.saveIncomes(data.incomes);
+            if (data.investments) this.saveInvestments(data.investments);
             if (data.goals) this.saveGoals(data.goals);
             if (data.schedules) this.saveSchedules(data.schedules);
             if (data.focus) this.save('focus', data.focus);
@@ -499,6 +544,7 @@ const Storage = {
         const habits = this.getHabits();
         const expenses = this.getExpenses();
         const focusSessions = this.getFocusSessions();
+        const invStats = this.getTotalInvestment();
         
         let habitTotal = 0, habitDone = 0;
         habits.forEach(h => {
@@ -528,7 +574,11 @@ const Storage = {
             expenseMonth,
             focusThisWeek,
             focusTotal: focusSessions.length,
-            bestStreak: Math.max(...habits.map(h => h.bestStreak), 0)
+            bestStreak: Math.max(...habits.map(h => h.bestStreak), 0),
+            totalInvested: invStats.totalInvested,
+            totalCurrent: invStats.totalCurrent,
+            profit: invStats.profit,
+            profitPct: invStats.profitPct
         };
     }
 };
