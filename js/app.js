@@ -1,5 +1,5 @@
 // ============================================
-// app.js - Main Controller V3.0
+// app.js - Main Controller V3.1
 // Sidebar + Bottom Nav + 16 Pages
 // ============================================
 
@@ -25,9 +25,9 @@ const App = {
         habits: 'Habit Tracker',
         tasks: 'Tugas',
         finance: 'Keuangan',
+        invest: 'Investasi',
         goals: 'Life Goals',
-        schedule: 'Time Blocking',
-        focus: 'Pomodoro Focus',
+        schedule: 'Jadwal Harian',
         journal: 'Jurnal Harian',
         ideas: 'Catatan Ide',
         books: 'Buku Dibaca',
@@ -41,9 +41,8 @@ const App = {
     
     // ========== INIT ==========
     init() {
-        console.log('🚀 Hariku V3.0 starting...');
+        console.log('🚀 Hariku V3.1 starting...');
         
-        // Load theme
         const darkMode = Storage.getSetting('darkMode', true);
         if (darkMode) {
             document.documentElement.setAttribute('data-theme', 'dark');
@@ -53,14 +52,12 @@ const App = {
             document.querySelector('meta[name="theme-color"]').content = '#FAFAFA';
         }
         
-        // Check PIN
         if (Storage.hasPin()) {
             this.showPinScreen();
         } else {
             this.showAppScreen();
         }
         
-        // Bind events
         this.bindSidebar();
         this.bindNavigation();
         this.bindThemeToggle();
@@ -68,7 +65,6 @@ const App = {
         this.bindModalPinKeypad();
         this.bindPinReset();
         
-        // Init Lucide icons
         lucide.createIcons();
         
         console.log('✅ App initialized');
@@ -76,22 +72,10 @@ const App = {
     
     // ========== SIDEBAR ==========
     bindSidebar() {
-        // Open sidebar
-        document.getElementById('btn-menu')?.addEventListener('click', () => {
-            this.openSidebar();
-        });
+        document.getElementById('btn-menu')?.addEventListener('click', () => this.openSidebar());
+        document.getElementById('sidebar-close')?.addEventListener('click', () => this.closeSidebar());
+        document.getElementById('sidebar-overlay')?.addEventListener('click', () => this.closeSidebar());
         
-        // Close sidebar
-        document.getElementById('sidebar-close')?.addEventListener('click', () => {
-            this.closeSidebar();
-        });
-        
-        // Overlay click
-        document.getElementById('sidebar-overlay')?.addEventListener('click', () => {
-            this.closeSidebar();
-        });
-        
-        // Sidebar items
         document.querySelectorAll('.sidebar-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -103,7 +87,7 @@ const App = {
             });
         });
         
-        // Swipe right to open (mobile)
+        // Swipe gesture
         let touchStartX = 0;
         document.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
@@ -139,13 +123,10 @@ const App = {
     
     // ========== NAVIGATION ==========
     bindNavigation() {
-        // Bottom nav
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 const page = item.dataset.page;
-                if (page) {
-                    this.navigateTo(page);
-                }
+                if (page) this.navigateTo(page);
             });
         });
     },
@@ -154,12 +135,12 @@ const App = {
         if (this.currentPage === page) return;
         this.currentPage = page;
         
-        // Update sidebar active
+        // Update sidebar
         document.querySelectorAll('.sidebar-item').forEach(item => {
             item.classList.toggle('active', item.dataset.page === page);
         });
         
-        // Update bottom nav active
+        // Update bottom nav
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.toggle('active', item.dataset.page === page);
         });
@@ -167,17 +148,14 @@ const App = {
         // Update title
         document.getElementById('app-title').textContent = this.pageTitles[page] || 'Hariku';
         
-        // Render page
+        // Render
         const container = document.getElementById('app-content');
         if (!container) return;
         container.innerHTML = '';
         
         this.renderPage(page, container);
         
-        // Re-init Lucide icons
         setTimeout(() => lucide.createIcons(), 100);
-        
-        // Scroll to top
         container.scrollTop = 0;
     },
     
@@ -187,9 +165,9 @@ const App = {
             case 'habits': Habits.render(container); break;
             case 'tasks': Tasks.render(container); break;
             case 'finance': Finance.render(container); break;
+            case 'invest': Invest.render(container); break;
             case 'goals': Goals.render(container); break;
             case 'schedule': Schedule.render(container); break;
-            case 'focus': Focus.render(container); break;
             case 'journal': Journal.render(container); break;
             case 'ideas': Ideas.render(container); break;
             case 'books': Books.render(container); break;
@@ -461,10 +439,8 @@ const App = {
     }
 };
 
-// ========== START ==========
 document.addEventListener('DOMContentLoaded', () => App.init());
 
-// Handle back button
 window.addEventListener('popstate', () => {
     if (Storage.hasPin() && document.getElementById('pin-screen').style.display === 'flex') {
         history.pushState(null, '', window.location.href);
