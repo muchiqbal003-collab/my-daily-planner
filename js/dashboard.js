@@ -1,6 +1,6 @@
 // ============================================
-// dashboard.js - Home Dashboard V3.1
-// Quote Motivasi + Stats + Jadwal Hari Ini + Investasi
+// dashboard.js - Home Dashboard V3.2
+// Quote + Stats + Jadwal + Investasi + Target
 // ============================================
 
 const Dashboard = {
@@ -14,6 +14,7 @@ const Dashboard = {
         const habits = Storage.getHabits();
         const schedules = Storage.getSchedules().filter(s => s.date === todayStr);
         schedules.sort((a, b) => a.time.localeCompare(b.time));
+        const targets = Storage.getTargets();
         
         const greeting = this.getGreeting();
         const userName = profile.name || 'Kamu';
@@ -31,7 +32,7 @@ const Dashboard = {
                     </h2>
                 </div>
                 
-                <!-- Quote Card (kalau ada) -->
+                <!-- Quote Card -->
                 ${profile.quote ? `
                 <div class="card glass" style="text-align:center;padding:16px;margin-bottom:14px;border-left:3px solid var(--accent);">
                     <div style="display:flex;align-items:flex-start;gap:8px;">
@@ -47,7 +48,7 @@ const Dashboard = {
                 </div>
                 ` : ''}
                 
-                <!-- Quick Stats Grid 2x2 -->
+                <!-- Stats Grid -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
                     <div class="stat-card" onclick="App.navigateTo('tasks')">
                         <i data-lucide="check-square" width="22" height="22" style="color:var(--accent-light);margin-bottom:6px;"></i>
@@ -60,16 +61,48 @@ const Dashboard = {
                         <div class="stat-label">Habit Selesai</div>
                     </div>
                     <div class="stat-card" onclick="App.navigateTo('invest')">
-                        <i data-lucide="trending-up" width="22" height="22" style="${stats.profit >= 0 ? 'color:#22C55E;' : 'color:#EF4444;'}margin-bottom:6px;"></i>
-                        <div class="stat-value ${stats.profit >= 0 ? 'green' : 'red'}">Rp ${App.formatAmount(stats.totalCurrent)}</div>
+                        <i data-lucide="trending-up" width="22" height="22" style="color:#22C55E;margin-bottom:6px;"></i>
+                        <div class="stat-value green">Rp ${App.formatAmount(stats.totalPortfolio)}</div>
                         <div class="stat-label">Portfolio</div>
                     </div>
                     <div class="stat-card" onclick="App.navigateTo('finance')">
                         <i data-lucide="wallet" width="22" height="22" style="color:#EF4444;margin-bottom:6px;"></i>
                         <div class="stat-value red">Rp ${App.formatAmount(stats.expenseToday)}</div>
-                        <div class="stat-label">Pengeluaran Hari Ini</div>
+                        <div class="stat-label">Pengeluaran</div>
                     </div>
                 </div>
+                
+                ${targets.length > 0 ? `
+                <!-- Target Aktif -->
+                <div class="card glass" style="padding:14px;margin-bottom:14px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <h3 style="font-size:12px;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+                            <i data-lucide="target" width="14" height="14"></i> Target Investasi
+                        </h3>
+                        <span style="font-size:10px;color:var(--accent-light);cursor:pointer;font-weight:600;" onclick="App.navigateTo('invest')">
+                            ${stats.targetsCompleted}/${stats.targetsTotal} tercapai →
+                        </span>
+                    </div>
+                    ${targets.slice(0, 2).map(t => {
+                        const progress = Storage.getTargetProgress(t.id);
+                        const pct = t.targetAmount > 0 ? Math.min(Math.round((progress / t.targetAmount) * 100), 100) : 0;
+                        const achieved = progress >= t.targetAmount;
+                        return `
+                            <div style="margin-bottom:8px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                                    <span style="font-size:11px;">${t.icon || '🎯'} ${this.escape(t.title)}</span>
+                                    <span style="font-size:10px;font-weight:700;color:${achieved ? '#22C55E' : 'var(--accent-light)'};">
+                                        ${achieved ? '✅ Tercapai!' : pct + '%'}
+                                    </span>
+                                </div>
+                                <div style="height:5px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;">
+                                    <div style="width:${pct}%;height:100%;background:${achieved ? '#22C55E' : (t.color || 'var(--gradient-1)')};border-radius:3px;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                ` : ''}
                 
                 <!-- Jadwal Hari Ini -->
                 <div class="card glass" style="margin-bottom:14px;padding:16px;">
@@ -95,16 +128,11 @@ const Dashboard = {
                                 <line x1="3" y1="10" x2="21" y2="10"/>
                             </svg>
                             <p style="font-size:11px;color:var(--text-tertiary);">Belum ada jadwal hari ini</p>
-                            <button style="margin-top:8px;font-size:10px;color:var(--accent-light);background:none;border:none;cursor:pointer;font-weight:600;" 
-                                onclick="App.navigateTo('schedule'); setTimeout(() => document.getElementById('btn-add-schedule')?.click(), 300);">
-                                + Tambah Jadwal
-                            </button>
                         </div>
                     ` : `
                         <div style="display:flex;flex-direction:column;gap:2px;">
                             ${schedules.slice(0, 4).map(s => `
-                                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;transition:all 0.15s;"
-                                     onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;">
                                     <div style="min-width:52px;">
                                         <span style="font-size:15px;font-weight:700;color:var(--accent-light);letter-spacing:-0.02em;">${s.time}</span>
                                     </div>
@@ -116,11 +144,7 @@ const Dashboard = {
                                 </div>
                             `).join('')}
                         </div>
-                        ${schedules.length > 4 ? `
-                            <p style="text-align:center;font-size:10px;color:var(--text-tertiary);margin-top:8px;">
-                                +${schedules.length - 4} kegiatan lainnya
-                            </p>
-                        ` : ''}
+                        ${schedules.length > 4 ? `<p style="text-align:center;font-size:10px;color:var(--text-tertiary);margin-top:8px;">+${schedules.length - 4} kegiatan lainnya</p>` : ''}
                     `}
                 </div>
                 
@@ -142,9 +166,9 @@ const Dashboard = {
                         <div style="font-size:11px;font-weight:700;color:var(--text-secondary);">Tambah Jadwal</div>
                     </button>
                     <button class="card" style="text-align:center;cursor:pointer;border:none;padding:16px;"
-                            onclick="App.navigateTo('ideas')">
-                        <i data-lucide="lightbulb" width="28" height="28" style="color:#F59E0B;margin-bottom:6px;"></i>
-                        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);">Catat Ide</div>
+                            onclick="App.navigateTo('invest')">
+                        <i data-lucide="trending-up" width="28" height="28" style="color:#8B5CF6;margin-bottom:6px;"></i>
+                        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);">Setor Investasi</div>
                     </button>
                 </div>
                 
