@@ -1,5 +1,5 @@
 // ============================================
-// storage.js - All Data Handler (V3.1)
+// storage.js - All Data Handler (FINAL V3.2)
 // ============================================
 
 const Storage = {
@@ -197,123 +197,122 @@ const Storage = {
     },
     deleteIncome(id) { this.saveIncomes(this.getIncomes().filter(i => i.id !== id)); },
     
-    // ========== INVESTMENTS ==========
     // ========== INVESTMENTS (Transactions + Targets) ==========
-
-// Transaksi
-getTransactions() { return this.load('transactions', []); },
-saveTransactions(transactions) { return this.save('transactions', transactions); },
-
-addTransaction(transaction) {
-    const transactions = this.getTransactions();
-    transaction.id = this.generateId();
-    transaction.createdAt = new Date().toISOString();
-    transactions.unshift(transaction);
-    this.saveTransactions(transactions);
-    return transaction;
-},
-updateTransaction(id, updates) {
-    const transactions = this.getTransactions();
-    const idx = transactions.findIndex(t => t.id === id);
-    if (idx !== -1) {
-        transactions[idx] = { ...transactions[idx], ...updates };
+    
+    // Transaksi
+    getTransactions() { return this.load('transactions', []); },
+    saveTransactions(transactions) { return this.save('transactions', transactions); },
+    
+    addTransaction(transaction) {
+        const transactions = this.getTransactions();
+        transaction.id = this.generateId();
+        transaction.createdAt = new Date().toISOString();
+        transactions.unshift(transaction);
         this.saveTransactions(transactions);
-        return transactions[idx];
-    }
-    return null;
-},
-deleteTransaction(id) {
-    this.saveTransactions(this.getTransactions().filter(t => t.id !== id));
-},
-
-// Target
-getTargets() { return this.load('targets', []); },
-saveTargets(targets) { return this.save('targets', targets); },
-
-addTarget(target) {
-    const targets = this.getTargets();
-    target.id = this.generateId();
-    target.createdAt = new Date().toISOString();
-    targets.push(target);
-    this.saveTargets(targets);
-    return target;
-},
-updateTarget(id, updates) {
-    const targets = this.getTargets();
-    const idx = targets.findIndex(t => t.id === id);
-    if (idx !== -1) {
-        targets[idx] = { ...targets[idx], ...updates };
+        return transaction;
+    },
+    updateTransaction(id, updates) {
+        const transactions = this.getTransactions();
+        const idx = transactions.findIndex(t => t.id === id);
+        if (idx !== -1) {
+            transactions[idx] = { ...transactions[idx], ...updates };
+            this.saveTransactions(transactions);
+            return transactions[idx];
+        }
+        return null;
+    },
+    deleteTransaction(id) {
+        this.saveTransactions(this.getTransactions().filter(t => t.id !== id));
+    },
+    
+    // Target
+    getTargets() { return this.load('targets', []); },
+    saveTargets(targets) { return this.save('targets', targets); },
+    
+    addTarget(target) {
+        const targets = this.getTargets();
+        target.id = this.generateId();
+        target.createdAt = new Date().toISOString();
+        targets.push(target);
         this.saveTargets(targets);
-        return targets[idx];
-    }
-    return null;
-},
-deleteTarget(id) { this.saveTargets(this.getTargets().filter(t => t.id !== id)); },
-
-// Get target progress (dari transaksi yang di-assign)
-getTargetProgress(targetId) {
-    const transactions = this.getTransactions();
-    return transactions
-        .filter(t => t.targetId === targetId)
-        .reduce((sum, t) => sum + t.amount, 0);
-},
-
-// Total portfolio
-getTotalPortfolio() {
-    const transactions = this.getTransactions();
-    return transactions.reduce((sum, t) => sum + t.amount, 0);
-},
-
-// Get portfolio by category
-getPortfolioByCategory() {
-    const transactions = this.getTransactions();
-    const cats = {};
-    transactions.forEach(t => {
-        const cat = t.category || 'Lainnya';
-        cats[cat] = (cats[cat] || 0) + t.amount;
-    });
-    return cats;
-},
-
-// Get monthly data for chart
-getMonthlyTransactions(months = 6) {
-    const transactions = this.getTransactions();
-    const result = [];
+        return target;
+    },
+    updateTarget(id, updates) {
+        const targets = this.getTargets();
+        const idx = targets.findIndex(t => t.id === id);
+        if (idx !== -1) {
+            targets[idx] = { ...targets[idx], ...updates };
+            this.saveTargets(targets);
+            return targets[idx];
+        }
+        return null;
+    },
+    deleteTarget(id) { this.saveTargets(this.getTargets().filter(t => t.id !== id)); },
     
-    for (let i = months - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const year = d.getFullYear();
-        const month = d.getMonth();
-        const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
-        const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
-        
-        const monthTransactions = transactions.filter(t => t.date >= monthStart && t.date <= monthEnd);
-        
-        result.push({
-            label: d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
-            total: monthTransactions.reduce((s, t) => s + t.amount, 0),
-            count: monthTransactions.length
+    // Get target progress
+    getTargetProgress(targetId) {
+        const transactions = this.getTransactions();
+        return transactions
+            .filter(t => t.targetId === targetId)
+            .reduce((sum, t) => sum + t.amount, 0);
+    },
+    
+    // Total portfolio (semua transaksi)
+    getTotalPortfolio() {
+        const transactions = this.getTransactions();
+        return transactions.reduce((sum, t) => sum + t.amount, 0);
+    },
+    
+    // Portfolio by category
+    getPortfolioByCategory() {
+        const transactions = this.getTransactions();
+        const cats = {};
+        transactions.forEach(t => {
+            const cat = t.category || 'Lainnya';
+            cats[cat] = (cats[cat] || 0) + t.amount;
         });
-    }
+        return cats;
+    },
     
-    return result;
-},
-
-// Kategori default untuk investasi
-getInvestCategories() {
-    return this.load('investCategories', [
-        { id: 'reksadana', name: 'Reksadana', icon: '📊', color: '#3B82F6' },
-        { id: 'saham', name: 'Saham', icon: '📈', color: '#22C55E' },
-        { id: 'emas', name: 'Emas', icon: '🟡', color: '#F59E0B' },
-        { id: 'crypto', name: 'Crypto', icon: '₿', color: '#8B5CF6' },
-        { id: 'p2p', name: 'P2P Lending', icon: '🤝', color: '#EC4899' },
-        { id: 'deposito', name: 'Deposito', icon: '🏦', color: '#06B6D4' },
-        { id: 'properti', name: 'Properti', icon: '🏠', color: '#F97316' },
-        { id: 'lainnya', name: 'Lainnya', icon: '💰', color: '#6B7280' }
-    ]);
-},
-saveInvestCategories(cats) { return this.save('investCategories', cats); },
+    // Monthly data for chart
+    getMonthlyTransactions(months = 6) {
+        const transactions = this.getTransactions();
+        const result = [];
+        
+        for (let i = months - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
+            const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            
+            const monthTransactions = transactions.filter(t => t.date >= monthStart && t.date <= monthEnd);
+            
+            result.push({
+                label: d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
+                total: monthTransactions.reduce((s, t) => s + t.amount, 0),
+                count: monthTransactions.length
+            });
+        }
+        
+        return result;
+    },
+    
+    // Kategori default investasi
+    getInvestCategories() {
+        return this.load('investCategories', [
+            { id: 'reksadana', name: 'Reksadana', icon: '📊', color: '#3B82F6' },
+            { id: 'saham', name: 'Saham', icon: '📈', color: '#22C55E' },
+            { id: 'emas', name: 'Emas', icon: '🟡', color: '#F59E0B' },
+            { id: 'crypto', name: 'Crypto', icon: '₿', color: '#8B5CF6' },
+            { id: 'p2p', name: 'P2P Lending', icon: '🤝', color: '#EC4899' },
+            { id: 'deposito', name: 'Deposito', icon: '🏦', color: '#06B6D4' },
+            { id: 'properti', name: 'Properti', icon: '🏠', color: '#F97316' },
+            { id: 'lainnya', name: 'Lainnya', icon: '💰', color: '#6B7280' }
+        ]);
+    },
+    saveInvestCategories(cats) { return this.save('investCategories', cats); },
     
     // ========== LIFE GOALS ==========
     getGoals() { return this.load('goals', []); },
@@ -551,12 +550,13 @@ saveInvestCategories(cats) { return this.save('investCategories', cats); },
     // ========== BACKUP/RESTORE ==========
     exportAll() {
         return JSON.stringify({
-            version: '3.1',
+            version: '3.2',
             tasks: this.getTasks(),
             habits: this.getHabits(),
             expenses: this.getExpenses(),
             incomes: this.getIncomes(),
-            investments: this.getInvestments(),
+            transactions: this.getTransactions(),
+            targets: this.getTargets(),
             goals: this.getGoals(),
             schedules: this.getSchedules(),
             focus: this.getFocusSessions(),
@@ -568,6 +568,7 @@ saveInvestCategories(cats) { return this.save('investCategories', cats); },
             achievements: this.getAchievements(),
             reminders: this.getReminders(),
             categories: this.getCategories(),
+            investCategories: this.getInvestCategories(),
             settings: this.getSettings(),
             profile: this.getProfile(),
             exportDate: new Date().toISOString()
@@ -581,7 +582,8 @@ saveInvestCategories(cats) { return this.save('investCategories', cats); },
             if (data.habits) this.saveHabits(data.habits);
             if (data.expenses) this.saveExpenses(data.expenses);
             if (data.incomes) this.saveIncomes(data.incomes);
-            if (data.investments) this.saveInvestments(data.investments);
+            if (data.transactions) this.saveTransactions(data.transactions);
+            if (data.targets) this.saveTargets(data.targets);
             if (data.goals) this.saveGoals(data.goals);
             if (data.schedules) this.saveSchedules(data.schedules);
             if (data.focus) this.save('focus', data.focus);
@@ -593,6 +595,7 @@ saveInvestCategories(cats) { return this.save('investCategories', cats); },
             if (data.achievements) this.save('achievements', data.achievements);
             if (data.reminders) this.saveReminders(data.reminders);
             if (data.categories) this.save('categories', data.categories);
+            if (data.investCategories) this.saveInvestCategories(data.investCategories);
             if (data.profile) this.saveProfile(data.profile);
             return true;
         } catch(e) {
@@ -619,7 +622,8 @@ saveInvestCategories(cats) { return this.save('investCategories', cats); },
         const habits = this.getHabits();
         const expenses = this.getExpenses();
         const focusSessions = this.getFocusSessions();
-        const invStats = this.getTotalInvestment();
+        const totalPortfolio = this.getTotalPortfolio();
+        const targets = this.getTargets();
         
         let habitTotal = 0, habitDone = 0;
         habits.forEach(h => {
@@ -636,6 +640,12 @@ saveInvestCategories(cats) { return this.save('investCategories', cats); },
         const expenseWeek = expenses.filter(e => e.date >= weekStartStr).reduce((s, e) => s + e.amount, 0);
         const expenseMonth = expenses.filter(e => e.date >= monthStart).reduce((s, e) => s + e.amount, 0);
         
+        // Target completed
+        const targetsCompleted = targets.filter(t => {
+            const progress = this.getTargetProgress(t.id);
+            return progress >= t.targetAmount;
+        }).length;
+        
         return {
             tasksToday,
             tasksCompletedToday,
@@ -650,10 +660,9 @@ saveInvestCategories(cats) { return this.save('investCategories', cats); },
             focusThisWeek,
             focusTotal: focusSessions.length,
             bestStreak: Math.max(...habits.map(h => h.bestStreak), 0),
-            totalInvested: invStats.totalInvested,
-            totalCurrent: invStats.totalCurrent,
-            profit: invStats.profit,
-            profitPct: invStats.profitPct
+            totalPortfolio,
+            targetsCompleted,
+            targetsTotal: targets.length
         };
     }
 };
